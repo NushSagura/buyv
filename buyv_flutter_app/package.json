@@ -1,0 +1,26 @@
+{
+  "name": "cj-cors-proxy",
+  "version": "1.0.0",
+  "description": "CORS Proxy Server for CJ Dropshipping API",
+  "main": "cors_proxy_server.js",
+  "scripts": {
+    "start": "node cors_proxy_server.js",
+    "dev": "nodemon cors_proxy_server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "http-proxy-middleware": "^2.0.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "cors",
+    "proxy",
+    "cj-dropshipping",
+    "api"
+  ],
+  "author": "BUYV Team",
+  "license": "MIT"
+}

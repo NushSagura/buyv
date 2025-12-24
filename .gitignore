@@ -1,0 +1,52 @@
+# Miscellaneous
+*.class
+*.log
+*.lock
+*.pyc
+__pycache__/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.iml
+.DS_Store
+
+# Android
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+output.json
+local.properties
+google-services.json
+key.properties
+*.jks
+*.keystore
+
+# iOS
+.generated/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Pods/
+ios/Podfile.lock
+
+# Python / Backend
+.venv/
+venv/
+ENV/
+
+# Sensitive Data (CRITICAL)
+.env
+.env.*
+*.db
+buyv.db
+*.sqlite
+*.sqlite3
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
