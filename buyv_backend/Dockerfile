@@ -26,6 +26,5 @@ COPY . .
 EXPOSE 8000
 
 # Run the application
-# Use shell form to allow variable expansion if needed, but array form is safer for signals.
 # Railway sets the $PORT variable, so we must bind to it.
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
