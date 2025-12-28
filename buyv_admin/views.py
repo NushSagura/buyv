@@ -40,6 +40,36 @@ class UserAdminView(SecureModelView):
     ]
     column_default_sort = ('created_at', True)
     
+    # Block deletion of users with orders/commissions
+    can_delete = True
+    
+    def delete_model(self, model):
+        """Override delete to check for related records"""
+        try:
+            # Import models to check relationships
+            from models import Order, Commission, Post, Comment
+            
+            # Check if user has orders
+            has_orders = self.session.query(Order).filter_by(user_id=model.id).count() > 0
+            has_commissions = self.session.query(Commission).filter_by(user_id=model.id).count() > 0
+            has_posts = self.session.query(Post).filter_by(user_id=model.id).count() > 0
+            has_comments = self.session.query(Comment).filter_by(user_id=model.id).count() > 0
+            
+            if has_orders or has_commissions:
+                flash(f'Cannot delete user "{model.username}" - User has {self.session.query(Order).filter_by(user_id=model.id).count()} orders and {self.session.query(Commission).filter_by(user_id=model.id).count()} commissions. Delete these first or archive the user instead.', 'error')
+                return False
+            
+            if has_posts or has_comments:
+                flash(f'Warning: User "{model.username}" has {self.session.query(Post).filter_by(user_id=model.id).count()} posts and {self.session.query(Comment).filter_by(user_id=model.id).count()} comments. These will become orphaned.', 'warning')
+            
+            # Proceed with deletion
+            return super(UserAdminView, self).delete_model(model)
+            
+        except Exception as e:
+            flash(f'Error deleting user: {str(e)}', 'error')
+            self.session.rollback()
+            return False
+    
     # Details view
     column_details_list = [
         'uid', 'username', 'email', 'display_name', 'bio',
