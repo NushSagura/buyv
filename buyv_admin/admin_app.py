@@ -41,7 +41,7 @@ else:
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-from app import models
+import models
 from views import (
     UserAdminView, PostAdminView, OrderAdminView, CommissionAdminView,
     CommentAdminView, NotificationAdminView, FollowAdminView, PostLikeAdminView,
