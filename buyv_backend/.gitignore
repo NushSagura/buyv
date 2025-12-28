@@ -5,3 +5,4 @@ __pycache__
 tvenv
 .DS_Store
 buyv.db
+firebase-credentials.json

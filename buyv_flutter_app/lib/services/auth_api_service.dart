@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../constants/app_constants.dart';
 import 'security/secure_token_manager.dart';
+import 'secure_storage_service.dart';
 
 class AuthApiService {
   static Uri _url(String path) => Uri.parse('${AppConstants.fastApiBaseUrl}$path');
@@ -119,5 +120,36 @@ class AuthApiService {
     final data = _parseResponse(res);
     await _storeTokenFromAuthResponse(data);
     return data;
+  }
+
+  /// Delete current user account - Required for App Store compliance
+  static Future<void> deleteAccount() async {
+    final token = await SecureTokenManager.getAccessToken();
+    final res = await http.delete(
+      _url('/users/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+    _parseResponse(res);
+    // Clear all tokens after account deletion
+    await SecureStorageService.clearAllData();
+  }
+
+  /// Update FCM token for push notifications
+  static Future<Map<String, dynamic>> updateFCMToken(String fcmToken) async {
+    final token = await SecureTokenManager.getAccessToken();
+    final res = await http.post(
+      _url('/users/me/fcm-token'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'fcm_token': fcmToken,
+      }),
+    );
+    return _parseResponse(res);
   }
 }

@@ -11,9 +11,21 @@ from .posts import router as posts_router
 from .comments import router as comments_router
 from .payments import router as payments_router
 from .cleanup import router as cleanup_router
+from .firebase_service import FirebaseService
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Create tables if not exist
 Base.metadata.create_all(bind=engine)
+
+# Initialize Firebase on startup (will skip if credentials not found)
+try:
+    FirebaseService.initialize()
+except Exception as e:
+    logger.warning(f"Firebase initialization failed: {e}")
 
 app = FastAPI(title="Buyv API", version="0.1.0")
 

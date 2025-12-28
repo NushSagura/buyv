@@ -10,7 +10,7 @@ class EnvironmentConfig {
   /// Définit le mode de l'application
   /// - true  : Mode DÉVELOPPEMENT (backend local)
   /// - false : Mode PRODUCTION (backend Railway)
-  static const bool isDevelopment = false; // ← MODE PRODUCTION ACTIVÉ
+  static const bool isDevelopment = true; // ← MODE DÉVELOPPEMENT ACTIVÉ
   
   // ═══════════════════════════════════════════════════════════════════
   // 🌐 URLS DES BACKENDS

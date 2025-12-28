@@ -213,16 +213,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onRefresh: _loadProfileData,
                   child: CustomScrollView(
                     slivers: [
+                      // AppBar with Settings button
+                      SliverAppBar(
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                        pinned: false,
+                        floating: true,
+                        title: Text(
+                          user.username,
+                          style: const TextStyle(
+                            color: Color(0xFF0D3D67),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        actions: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.add_box_outlined,
+                              color: Color(0xFF0D3D67),
+                            ),
+                            onPressed: () {
+                              context.push('/add-post');
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.settings_outlined,
+                              color: Color(0xFF0D3D67),
+                            ),
+                            onPressed: () {
+                              context.push('/settings');
+                            },
+                          ),
+                        ],
+                      ),
                       // Header with profile info
                       SliverToBoxAdapter(
                         child: Container(
                           color: Colors.white,
-                          child: SafeArea(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                children: [
-                                  // Stats Row
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              children: [
+                                // Stats Row
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16.0,
@@ -429,8 +462,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
-                      ),
-
+                      
                       SliverToBoxAdapter(
                         child: SizedBox(
                           height: 650,

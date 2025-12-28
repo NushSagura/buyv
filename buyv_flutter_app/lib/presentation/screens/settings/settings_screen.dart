@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../../services/auth_api_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -23,7 +24,7 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.blue),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
       ),
       body: Padding(
@@ -91,6 +92,14 @@ class SettingsScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _buildSettingsItem(
                     context,
+                    icon: Icons.delete_forever,
+                    title: 'Delete Account',
+                    onTap: () => _showDeleteAccountDialog(context),
+                    isDestructive: true,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSettingsItem(
+                    context,
                     icon: Icons.logout,
                     title: 'Logout',
                     onTap: () async {
@@ -116,13 +125,18 @@ class SettingsScreen extends StatelessWidget {
     required String title,
     required VoidCallback onTap,
     bool isLogout = false,
+    bool isDestructive = false,
   }) {
+    final Color itemColor = isDestructive 
+        ? Colors.red 
+        : (isLogout ? Colors.red : const Color(0xFFFF6F00));
+    
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFFF6F00).withValues(alpha: 0.3),
+          color: itemColor.withValues(alpha: 0.3),
           width: 1,
         ),
         boxShadow: [
@@ -139,14 +153,12 @@ class SettingsScreen extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isLogout 
-                ? Colors.red.withValues(alpha: 0.1)
-                : const Color(0xFFFF6F00).withValues(alpha: 0.1),
+            color: itemColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             icon,
-            color: isLogout ? Colors.red : const Color(0xFFFF6F00),
+            color: itemColor,
             size: 24,
           ),
         ),
@@ -155,16 +167,139 @@ class SettingsScreen extends StatelessWidget {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
-            color: isLogout ? Colors.red : Colors.blue,
+            color: (isLogout || isDestructive) ? Colors.red : Colors.blue,
           ),
         ),
         trailing: Icon(
           Icons.chevron_right,
-          color: isLogout ? Colors.red : Colors.blue,
+          color: (isLogout || isDestructive) ? Colors.red : Colors.blue,
           size: 24,
         ),
         onTap: onTap,
       ),
     );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'Delete Account',
+            style: TextStyle(
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Are you sure you want to permanently delete your account?',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'This action will:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text('• Delete all your posts and reels'),
+              Text('• Remove all your comments and likes'),
+              Text('• Cancel all pending orders'),
+              Text('• Remove all your follows'),
+              Text('• Delete all your data permanently'),
+              SizedBox(height: 16),
+              Text(
+                '⚠️ This action cannot be undone!',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.blue),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await _deleteAccount(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete Account'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteAccount(BuildContext context) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      },
+    );
+
+    try {
+      // Import auth_api_service at top of file
+      await AuthApiService.deleteAccount();
+      
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+      
+      // Show success message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      
+      // Sign out and redirect to login
+      if (context.mounted) {
+        await context.read<AuthProvider>().signOut();
+        context.go('/login');
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+      
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete account: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

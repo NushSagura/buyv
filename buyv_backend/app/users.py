@@ -1,12 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
+from pydantic import BaseModel
 from .database import get_db
 from . import models
 from .schemas import UserOut, UserUpdate
+from .auth import get_current_user
 import json
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+class FCMTokenUpdate(BaseModel):
+    """Schema for updating FCM token"""
+    fcm_token: str
 
 
 def user_to_out(user: models.User) -> UserOut:
@@ -92,3 +99,91 @@ def update_user(uid: str, payload: UserUpdate, db: Session = Depends(get_db)):
     db.refresh(user)
 
     return user_to_out(user)
+
+
+@router.post("/me/fcm-token")
+def update_fcm_token(
+    payload: FCMTokenUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Update user's FCM (Firebase Cloud Messaging) token for push notifications.
+    This token is used to send push notifications to the user's device.
+    """
+    current_user.fcm_token = payload.fcm_token
+    db.commit()
+    return {
+        "message": "FCM token updated successfully",
+        "user_id": current_user.uid
+    }
+
+
+@router.delete("/me")
+def delete_account(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Delete the authenticated user's account permanently.
+    This will cascade delete all associated data:
+    - Posts (reels, products, photos)
+    - Comments
+    - Likes
+    - Follows (both as follower and followed)
+    - Orders and order items
+    - Commissions
+    - Notifications
+    
+    Required for Apple Store and Google Play Store compliance.
+    """
+    user_id = current_user.id
+    
+    # The cascade deletes are handled by SQLAlchemy relationships
+    # defined in models.py with cascade="all, delete-orphan"
+    # Additional manual cleanup for relationships without cascade:
+    
+    # Delete follows where user is follower or followed
+    db.query(models.Follow).filter(
+        (models.Follow.follower_id == user_id) | 
+        (models.Follow.followed_id == user_id)
+    ).delete(synchronize_session=False)
+    
+    # Delete post likes
+    db.query(models.PostLike).filter(
+        models.PostLike.user_id == user_id
+    ).delete(synchronize_session=False)
+    
+    # Delete commissions
+    db.query(models.Commission).filter(
+        models.Commission.user_id == user_id
+    ).delete(synchronize_session=False)
+    
+    # Delete notifications for this user
+    db.query(models.Notification).filter(
+        models.Notification.user_id == user_id
+    ).delete(synchronize_session=False)
+    
+    # Delete all comments by this user
+    db.query(models.Comment).filter(
+        models.Comment.user_id == user_id
+    ).delete(synchronize_session=False)
+    
+    # Delete all posts by this user (will cascade delete likes and comments on those posts)
+    db.query(models.Post).filter(
+        models.Post.user_id == user_id
+    ).delete(synchronize_session=False)
+    
+    # Delete all orders by this user (will cascade delete order items)
+    db.query(models.Order).filter(
+        models.Order.user_id == user_id
+    ).delete(synchronize_session=False)
+    
+    # Finally, delete the user
+    db.delete(current_user)
+    db.commit()
+    
+    return {
+        "message": "Account successfully deleted",
+        "deleted_user_id": current_user.uid
+    }

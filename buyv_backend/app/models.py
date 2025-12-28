@@ -24,6 +24,9 @@ class User(Base):
 
     interests: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON string
     settings: Mapped[str | None] = mapped_column(Text, nullable=True)   # JSON string
+    
+    # FCM token for push notifications
+    fcm_token: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
 class Notification(Base):
     __tablename__ = "notifications"

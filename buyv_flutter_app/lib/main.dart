@@ -5,6 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:app_links/app_links.dart';
 import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 import 'data/repositories/auth_repository_fastapi.dart';
 import 'presentation/providers/auth_provider.dart';
@@ -17,11 +19,18 @@ import 'services/secure_storage_service.dart';
 import 'services/security_audit_service.dart';
 import 'core/router/app_router.dart';
 import 'services/deep_link_handler.dart';
+import 'services/firebase_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
+    // Initialize Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint('✅ Firebase initialized');
+    
     // Load Environment Variables
     await dotenv.load(fileName: ".env");
     debugPrint('✅ Environment variables loaded');
@@ -81,6 +90,16 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _initDeepLinks();
+    _initFirebaseNotifications();
+  }
+
+  Future<void> _initFirebaseNotifications() async {
+    try {
+      await FirebaseNotificationService.instance.initialize();
+      debugPrint('✅ Firebase Notifications initialized');
+    } catch (e) {
+      debugPrint('❌ Firebase Notifications initialization failed: $e');
+    }
   }
 
   Future<void> _initDeepLinks() async {

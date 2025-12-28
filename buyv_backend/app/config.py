@@ -14,7 +14,13 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-change-it")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
+# Database URL - supports PostgreSQL (production) and SQLite (local dev)
+# Railway will automatically set DATABASE_URL with PostgreSQL connection
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./buyv.db")
+
+# Fix for Railway PostgreSQL URL (postgres:// -> postgresql://)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # CJ Dropshipping Keys
 CJ_API_KEY = os.getenv("CJ_API_KEY", "")
