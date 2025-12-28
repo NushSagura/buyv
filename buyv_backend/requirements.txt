@@ -19,6 +19,9 @@ email-validator==2.2.0
 # Payments
 stripe==11.4.0
 
+# Firebase
+firebase-admin==6.5.0
+
 # Utilities
 pydantic==2.9.1
 python-multipart==0.0.20
