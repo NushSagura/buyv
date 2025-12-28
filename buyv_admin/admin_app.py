@@ -66,12 +66,12 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'admin.login'
 
-# Root redirect for non-authenticated users
-@app.route('/')
-def index():
-    if current_user.is_authenticated:
-        return redirect('/admin')
-    return redirect('/login')
+# Remove root redirect - Flask-Admin handles it
+# @app.route('/')
+# def index():
+#     if current_user.is_authenticated:
+#         return redirect('/admin')
+#     return redirect('/login')
 
 
 class AdminUser(UserMixin):
@@ -204,7 +204,8 @@ admin = Admin(
     name='Buyv Admin',
     index_view=SecureAdminIndexView(name='Dashboard', url='/'),
     base_template='admin/master.html',
-    template_mode='bootstrap4'
+    template_mode='bootstrap4',
+    url='/'
 )
 
 # Get database session
