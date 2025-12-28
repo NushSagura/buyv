@@ -50,10 +50,13 @@ from views import (
 
 # Flask app configuration
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-super-secret-key-change-in-production'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-super-secret-key-change-in-production')
 app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
 app.config['BABEL_DEFAULT_LOCALE'] = 'en'
 app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
+# Fix for serving static files in production
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 # Initialize Babel for internationalization
 babel = Babel(app)
@@ -62,6 +65,13 @@ babel = Babel(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'admin.login'
+
+# Root redirect for non-authenticated users
+@app.route('/')
+def index():
+    if current_user.is_authenticated:
+        return redirect('/admin')
+    return redirect('/login')
 
 
 class AdminUser(UserMixin):
@@ -188,11 +198,13 @@ class SecureModelView(ModelView):
         return redirect(url_for('admin.login'))
 
 
-# Initialize Flask-Admin
+# Initialize Flask-Admin at root URL
 admin = Admin(
     app,
     name='Buyv Admin',
-    index_view=SecureAdminIndexView(name='Dashboard')
+    index_view=SecureAdminIndexView(name='Dashboard', url='/'),
+    base_template='admin/master.html',
+    template_mode='bootstrap4'
 )
 
 # Get database session
