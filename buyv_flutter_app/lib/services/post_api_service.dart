@@ -124,6 +124,31 @@ class PostApiService {
     return (data['isLiked'] ?? false) as bool;
   }
 
+  static Future<Map<String, dynamic>> bookmarkPost(String postUid) async {
+    final res = await http.post(
+      _url('/posts/$postUid/bookmark'),
+      headers: await _authHeaders(),
+    );
+    return _parse(res);
+  }
+
+  static Future<Map<String, dynamic>> unbookmarkPost(String postUid) async {
+    final res = await http.delete(
+      _url('/posts/$postUid/bookmark'),
+      headers: await _authHeaders(),
+    );
+    return _parse(res);
+  }
+
+  static Future<bool> isPostBookmarked(String postUid) async {
+    final res = await http.get(
+      _url('/posts/$postUid/is_bookmarked'),
+      headers: await _authHeaders(),
+    );
+    final data = _parse(res);
+    return (data['isBookmarked'] ?? false) as bool;
+  }
+
   static Future<Map<String, dynamic>> createPost({
     required String type,
     required String mediaUrl,

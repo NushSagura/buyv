@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from .database import get_db
-from .models import User, Post, PostLike
+from .models import User, Post, PostLike, PostBookmark
 from .auth import get_current_user, get_current_user_optional
 from .schemas import PostOut, CountResponse, PostCreate
 
@@ -313,6 +313,63 @@ def is_post_liked(
         raise HTTPException(status_code=404, detail="Post not found")
     existing = db.query(PostLike).filter(PostLike.post_id == post.id, PostLike.user_id == current_user.id).first()
     return {"isLiked": existing is not None}
+
+
+@router.post("/{post_uid}/bookmark")
+def bookmark_post(
+    post_uid: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    post = db.query(Post).filter(Post.uid == post_uid).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    existing = db.query(PostBookmark).filter(
+        PostBookmark.post_id == post.id,
+        PostBookmark.user_id == current_user.id
+    ).first()
+    if existing:
+        return {"status": "already_bookmarked"}
+    bookmark = PostBookmark(post_id=post.id, user_id=current_user.id)
+    db.add(bookmark)
+    db.commit()
+    return {"status": "bookmarked"}
+
+
+@router.delete("/{post_uid}/bookmark")
+def unbookmark_post(
+    post_uid: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    post = db.query(Post).filter(Post.uid == post_uid).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    existing = db.query(PostBookmark).filter(
+        PostBookmark.post_id == post.id,
+        PostBookmark.user_id == current_user.id
+    ).first()
+    if not existing:
+        return {"status": "not_bookmarked"}
+    db.delete(existing)
+    db.commit()
+    return {"status": "unbookmarked"}
+
+
+@router.get("/{post_uid}/is_bookmarked")
+def is_post_bookmarked(
+    post_uid: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    post = db.query(Post).filter(Post.uid == post_uid).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    existing = db.query(PostBookmark).filter(
+        PostBookmark.post_id == post.id,
+        PostBookmark.user_id == current_user.id
+    ).first()
+    return {"isBookmarked": existing is not None}
 
 
 @router.delete("/{post_uid}")

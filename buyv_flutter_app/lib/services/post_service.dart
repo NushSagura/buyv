@@ -201,4 +201,36 @@ class PostService {
       return false;
     }
   }
+
+  // Bookmark a post
+  static Future<bool> bookmarkPost(String postId) async {
+    try {
+      final result = await PostApiService.bookmarkPost(postId);
+      return result['status'] == 'bookmarked' || result['status'] == 'already_bookmarked';
+    } catch (e) {
+      debugPrint('bookmarkPost error: $e');
+      return false;
+    }
+  }
+
+  // Unbookmark a post
+  static Future<bool> unbookmarkPost(String postId) async {
+    try {
+      final result = await PostApiService.unbookmarkPost(postId);
+      return result['status'] == 'unbookmarked' || result['status'] == 'not_bookmarked';
+    } catch (e) {
+      debugPrint('unbookmarkPost error: $e');
+      return false;
+    }
+  }
+
+  // Check if post is bookmarked
+  static Future<bool> isPostBookmarked(String postId) async {
+    try {
+      return await PostApiService.isPostBookmarked(postId);
+    } catch (e) {
+      debugPrint('isPostBookmarked error: $e');
+      return false;
+    }
+  }
 }

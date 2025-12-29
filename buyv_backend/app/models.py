@@ -155,6 +155,21 @@ class PostLike(Base):
     user = relationship("User")
 
 
+class PostBookmark(Base):
+    __tablename__ = "post_bookmarks"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    post_id: Mapped[int] = mapped_column(Integer, ForeignKey("posts.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('post_id', 'user_id', name='uq_post_bookmark'),
+    )
+
+    post = relationship("Post")
+    user = relationship("User")
+
+
 class Comment(Base):
     __tablename__ = "comments"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)

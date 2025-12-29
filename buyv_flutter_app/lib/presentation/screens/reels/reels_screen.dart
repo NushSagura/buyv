@@ -335,14 +335,46 @@ class _ReelsScreenState extends State<ReelsScreen>
     });
   }
 
-  void _toggleBookmark(String reelId) {
+  void _toggleBookmark(String reelId) async {
+    final reelIndex = _reels.indexWhere((reel) => reel.id == reelId);
+    if (reelIndex < 0) return;
+
+    final reel = _reels[reelIndex];
+    final newBookmarkState = !reel.isBookmarked;
+
+    // Optimistic update
     setState(() {
-      final reelIndex = _reels.indexWhere((reel) => reel.id == reelId);
-      if (reelIndex >= 0) {
-        final reel = _reels[reelIndex];
-        _reels[reelIndex] = reel.copyWith(isBookmarked: !reel.isBookmarked);
-      }
+      _reels[reelIndex] = reel.copyWith(isBookmarked: newBookmarkState);
     });
+
+    // Call backend
+    try {
+      final success = newBookmarkState
+          ? await PostService.bookmarkPost(reelId)
+          : await PostService.unbookmarkPost(reelId);
+
+      if (!success) {
+        // Revert on failure
+        if (mounted) {
+          setState(() {
+            _reels[reelIndex] = reel.copyWith(isBookmarked: !newBookmarkState);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erreur lors de la sauvegarde')),
+          );
+        }
+      }
+    } catch (e) {
+      // Revert on error
+      if (mounted) {
+        setState(() {
+          _reels[reelIndex] = reel.copyWith(isBookmarked: !newBookmarkState);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: \$e')),
+        );
+      }
+    }
   }
 
   void _shareReel(ReelModel reel) {
