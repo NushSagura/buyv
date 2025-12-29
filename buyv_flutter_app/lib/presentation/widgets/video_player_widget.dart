@@ -164,13 +164,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       }
     }
   }
-    // Resume if was auto-playing and now visible
-    else if (info.visibleFraction > 0.8 && widget.autoPlay && !_isPlaying) {
-      _controller!.play();
-      _isPlaying = true;
-      debugPrint('▶️ Video resumed - visible again (${(info.visibleFraction * 100).toStringAsFixed(0)}%)');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
