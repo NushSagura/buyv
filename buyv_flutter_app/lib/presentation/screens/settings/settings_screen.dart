@@ -24,7 +24,13 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.blue),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
         ),
       ),
       body: Padding(
@@ -38,56 +44,56 @@ class SettingsScreen extends StatelessWidget {
                     context,
                     icon: Icons.local_shipping_outlined,
                     title: 'Orders Track',
-                    onTap: () => context.go('/orders-track'),
+                    onTap: () => context.push('/orders-track'),
                   ),
                   const SizedBox(height: 12),
                   _buildSettingsItem(
                     context,
                     icon: Icons.history,
                     title: 'Orders history',
-                    onTap: () => context.go('/orders-history'),
+                    onTap: () => context.push('/orders-history'),
                   ),
                   const SizedBox(height: 12),
                   _buildSettingsItem(
                     context,
                     icon: Icons.visibility_outlined,
                     title: 'Recently viewed',
-                    onTap: () => context.go('/recently-viewed'),
+                    onTap: () => context.push('/recently-viewed'),
                   ),
                   const SizedBox(height: 12),
                   _buildSettingsItem(
                     context,
                     icon: Icons.credit_card_outlined,
                     title: 'Payment Methods',
-                    onTap: () => context.go('/payment'),
+                    onTap: () => context.push('/payment'),
                   ),
                   const SizedBox(height: 12),
                   _buildSettingsItem(
                     context,
                     icon: Icons.location_on_outlined,
                     title: 'Location',
-                    onTap: () => context.go('/location-settings'),
+                    onTap: () => context.push('/location-settings'),
                   ),
                   const SizedBox(height: 12),
                   _buildSettingsItem(
                     context,
                     icon: Icons.language_outlined,
                     title: 'Language',
-                    onTap: () => context.go('/language-settings'),
+                    onTap: () => context.push('/language-settings'),
                   ),
                   const SizedBox(height: 12),
                   _buildSettingsItem(
                     context,
                     icon: Icons.lock_outline,
                     title: 'Change Password',
-                    onTap: () => context.go('/change-password'),
+                    onTap: () => context.push('/change-password'),
                   ),
                   const SizedBox(height: 12),
                   _buildSettingsItem(
                     context,
                     icon: Icons.help_outline,
                     title: 'Ask Help',
-                    onTap: () => context.go('/help'),
+                    onTap: () => context.push('/help'),
                   ),
                   const SizedBox(height: 12),
                   _buildSettingsItem(

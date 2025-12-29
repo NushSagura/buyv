@@ -321,18 +321,26 @@ def bookmark_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    print(f"🔖 Backend: bookmark_post called for post_uid={post_uid}, user={current_user.username}")
     post = db.query(Post).filter(Post.uid == post_uid).first()
     if not post:
+        print(f"❌ Post {post_uid} not found")
         raise HTTPException(status_code=404, detail="Post not found")
+    
+    print(f"📌 Post found: id={post.id}")
     existing = db.query(PostBookmark).filter(
         PostBookmark.post_id == post.id,
         PostBookmark.user_id == current_user.id
     ).first()
+    
     if existing:
+        print(f"ℹ️ Already bookmarked")
         return {"status": "already_bookmarked"}
+    
     bookmark = PostBookmark(post_id=post.id, user_id=current_user.id)
     db.add(bookmark)
     db.commit()
+    print(f"✅ Bookmark created successfully")
     return {"status": "bookmarked"}
 
 
@@ -342,17 +350,25 @@ def unbookmark_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    print(f"🔖 Backend: unbookmark_post called for post_uid={post_uid}, user={current_user.username}")
     post = db.query(Post).filter(Post.uid == post_uid).first()
     if not post:
+        print(f"❌ Post {post_uid} not found")
         raise HTTPException(status_code=404, detail="Post not found")
+    
+    print(f"📌 Post found: id={post.id}")
     existing = db.query(PostBookmark).filter(
         PostBookmark.post_id == post.id,
         PostBookmark.user_id == current_user.id
     ).first()
+    
     if not existing:
+        print(f"ℹ️ Not bookmarked")
         return {"status": "not_bookmarked"}
+    
     db.delete(existing)
     db.commit()
+    print(f"✅ Bookmark removed successfully")
     return {"status": "unbookmarked"}
 
 

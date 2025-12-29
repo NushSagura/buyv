@@ -19,6 +19,7 @@ class PostCardWidget extends StatefulWidget {
 class _PostCardWidgetState extends State<PostCardWidget> {
   late bool _isLiked;
   late int _likesCount;
+  late bool _isBookmarked;
   final PostService _postService = PostService();
 
   @override
@@ -26,6 +27,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
     super.initState();
     _isLiked = widget.post.isLiked;
     _likesCount = widget.post.likesCount;
+    _isBookmarked = widget.post.isBookmarked;
   }
 
   Future<void> _toggleLike() async {
@@ -49,6 +51,62 @@ class _PostCardWidgetState extends State<PostCardWidget> {
           _isLiked = previousState;
           _likesCount += _isLiked ? 1 : -1;
         });
+      }
+    }
+  }
+
+  Future<void> _toggleBookmark() async {
+    print('🔖 PostCardWidget: _toggleBookmark called for post ${widget.post.id}');
+    final previousState = _isBookmarked;
+    
+    // Optimistic update
+    setState(() {
+      _isBookmarked = !_isBookmarked;
+    });
+    print('🔖 UI updated: isBookmarked = $_isBookmarked');
+
+    try {
+      print('🔖 Calling API...');
+      final success = previousState
+          ? await PostService.unbookmarkPost(widget.post.id)
+          : await PostService.bookmarkPost(widget.post.id);
+      
+      print('🔖 API returned: $success');
+      
+      if (!success) {
+        // Revert on failure
+        print('❌ API failed, reverting...');
+        if (mounted) {
+          setState(() {
+            _isBookmarked = previousState;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erreur lors de la sauvegarde')),
+          );
+        }
+      } else {
+        print('✅ Bookmark saved successfully!');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _isBookmarked ? 'Ajouté aux favoris' : 'Retiré des favoris',
+              ),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Exception: $e');
+      // Revert on error
+      if (mounted) {
+        setState(() {
+          _isBookmarked = previousState;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
       }
     }
   }
@@ -228,22 +286,12 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                   const Spacer(),
                   IconButton(
                     icon: Icon(
-                      widget.post.isBookmarked
+                      _isBookmarked
                           ? Icons.bookmark
                           : Icons.bookmark_border,
+                      color: _isBookmarked ? Colors.yellow[700] : null,
                     ),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            widget.post.isBookmarked
-                                ? 'Removed from bookmarks'
-                                : 'Added to bookmarks',
-                          ),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    },
+                    onPressed: _toggleBookmark,
                   ),
                 ],
               ),

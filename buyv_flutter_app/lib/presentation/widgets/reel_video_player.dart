@@ -176,8 +176,14 @@ class _ReelVideoPlayerState extends State<ReelVideoPlayer>
 
   @override
   void dispose() {
+    debugPrint('🛑 ReelVideoPlayer: Disposing - stopping video immediately');
     WidgetsBinding.instance.removeObserver(this);
-    _controller?.dispose();
+    // Stop video and mute IMMEDIATELY before disposing
+    if (_controller != null) {
+      _controller!.pause();
+      _controller!.setVolume(0); // Mute immediately
+      _controller!.dispose();
+    }
     super.dispose();
   }
 

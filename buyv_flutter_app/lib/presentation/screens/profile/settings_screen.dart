@@ -8,15 +8,20 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () async {
+        context.go('/profile');
+        return false;
+      },
+      child: Scaffold(
         backgroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.go('/profile'),
+          ),
         title: const Text(
           'Settings',
           style: TextStyle(
@@ -37,7 +42,7 @@ class SettingsScreen extends StatelessWidget {
               title: 'Orders Track',
               onTap: () {
                 // Navigate to orders track
-                context.go('/orders-track');
+                context.push('/orders-track');
               },
             ),
             const SizedBox(height: 12),
@@ -47,7 +52,7 @@ class SettingsScreen extends StatelessWidget {
               title: 'Orders history',
               onTap: () {
                 // Navigate to orders history
-                context.go('/orders-history');
+                context.push('/orders-history');
               },
             ),
             const SizedBox(height: 12),
@@ -57,7 +62,7 @@ class SettingsScreen extends StatelessWidget {
               title: 'Recently viewed',
               onTap: () {
                 // Navigate to recently viewed
-                context.go('/recently-viewed');
+                context.push('/recently-viewed');
               },
             ),
             const SizedBox(height: 12),
@@ -67,7 +72,7 @@ class SettingsScreen extends StatelessWidget {
               title: 'Payment Methods',
               onTap: () {
                 // Navigate to payment methods
-                context.go('/payment-methods');
+                context.push('/payment-methods');
               },
             ),
             const SizedBox(height: 12),
@@ -77,7 +82,7 @@ class SettingsScreen extends StatelessWidget {
               title: 'Location',
               onTap: () {
                 // Navigate to location settings
-                context.go('/location-settings');
+                context.push('/location-settings');
               },
             ),
             const SizedBox(height: 12),
@@ -87,7 +92,7 @@ class SettingsScreen extends StatelessWidget {
               title: 'Language',
               onTap: () {
                 // Navigate to language settings
-                context.go('/language-settings');
+                context.push('/language-settings');
               },
             ),
             const SizedBox(height: 12),
@@ -97,7 +102,7 @@ class SettingsScreen extends StatelessWidget {
               title: 'Change Password',
               onTap: () {
                 // Navigate to change password
-                context.go('/change-password');
+                context.push('/change-password');
               },
             ),
             const SizedBox(height: 12),
@@ -107,7 +112,7 @@ class SettingsScreen extends StatelessWidget {
               title: 'Ask Help',
               onTap: () {
                 // Navigate to help
-                context.go('/help');
+                context.push('/help');
               },
             ),
             const SizedBox(height: 12),
@@ -121,6 +126,7 @@ class SettingsScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -50,15 +50,24 @@ class _RecentlyViewedScreenState extends State<RecentlyViewedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () async {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/home');
+        }
+        return false;
+      },
+      child: Scaffold(
         backgroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.go('/settings'),
+          ),
         title: const Text(
           'Recently Viewed',
           style: TextStyle(
@@ -85,6 +94,7 @@ class _RecentlyViewedScreenState extends State<RecentlyViewedScreen> {
                 return _buildProductCard(product, index);
               },
             ),
+      ),
     );
   }
 

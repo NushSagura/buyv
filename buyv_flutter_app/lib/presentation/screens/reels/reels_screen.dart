@@ -97,10 +97,21 @@ class _ReelsScreenState extends State<ReelsScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    // Stop all videos immediately before disposing
+    _pauseAllVideos();
     _pageController.dispose();
     _heartAnimationController.dispose();
     _commentController.dispose();
     super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    // Called when the widget is removed from the tree (e.g., navigating away)
+    // Immediately stop all videos to prevent audio continuing
+    debugPrint('🛑 ReelsScreen: Deactivating - stopping all videos');
+    _pauseAllVideos();
+    super.deactivate();
   }
 
   @override
@@ -337,25 +348,38 @@ class _ReelsScreenState extends State<ReelsScreen>
   }
 
   void _toggleBookmark(String reelId) async {
+    print('🔖 _toggleBookmark called for reel: $reelId');
+    
     final reelIndex = _reels.indexWhere((reel) => reel.id == reelId);
-    if (reelIndex < 0) return;
+    if (reelIndex < 0) {
+      print('❌ Reel not found in list');
+      return;
+    }
 
     final reel = _reels[reelIndex];
     final newBookmarkState = !reel.isBookmarked;
+    
+    print('🔖 Current bookmark state: ${reel.isBookmarked}, new state: $newBookmarkState');
 
     // Optimistic update
     setState(() {
       _reels[reelIndex] = reel.copyWith(isBookmarked: newBookmarkState);
     });
+    
+    print('🔖 UI updated optimistically');
 
     // Call backend
     try {
+      print('🔖 Calling backend API...');
       final success = newBookmarkState
           ? await PostService.bookmarkPost(reelId)
           : await PostService.unbookmarkPost(reelId);
 
+      print('🔖 Backend response: $success');
+      
       if (!success) {
         // Revert on failure
+        print('❌ Backend returned false, reverting...');
         if (mounted) {
           setState(() {
             _reels[reelIndex] = reel.copyWith(isBookmarked: !newBookmarkState);
@@ -364,15 +388,18 @@ class _ReelsScreenState extends State<ReelsScreen>
             const SnackBar(content: Text('Erreur lors de la sauvegarde')),
           );
         }
+      } else {
+        print('✅ Bookmark saved successfully!');
       }
     } catch (e) {
       // Revert on error
+      print('❌ Exception during bookmark: $e');
       if (mounted) {
         setState(() {
           _reels[reelIndex] = reel.copyWith(isBookmarked: !newBookmarkState);
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: \$e')),
+          SnackBar(content: Text('Erreur: $e')),
         );
       }
     }

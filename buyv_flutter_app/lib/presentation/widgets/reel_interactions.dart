@@ -84,10 +84,13 @@ class _ReelInteractionsState extends State<ReelInteractions>
   }
 
   void _onBookmarkTap() {
+    print('🎯 ReelInteractions: Bookmark button tapped!');
     _bookmarkAnimationController.forward().then((_) {
       _bookmarkAnimationController.reverse();
     });
+    print('🎯 Calling widget.onBookmark()...');
     widget.onBookmark();
+    print('🎯 widget.onBookmark() called');
   }
 
   String _formatCount(int count) {
