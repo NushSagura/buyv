@@ -49,6 +49,7 @@ class AppRouter {
       redirect: (BuildContext context, GoRouterState state) {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final isAuthenticated = authProvider.isAuthenticated;
+        final isLoading = authProvider.isLoading;
         final isLoggingIn = state.matchedLocation == RouteNames.login ||
             state.matchedLocation == RouteNames.signup ||
             state.matchedLocation == RouteNames.register ||
@@ -57,6 +58,9 @@ class AppRouter {
 
         // Allow access to public routes
         if (isLoggingIn) return null;
+
+        // Don't redirect while loading - prevents black screen
+        if (isLoading) return null;
 
         // Redirect to login if not authenticated
         if (!isAuthenticated && !isLoggingIn) {

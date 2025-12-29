@@ -32,14 +32,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Only intercept Back button on the Home tab (tab 0)
+    final shouldInterceptBack = _currentIndex == 0;
+    
     return PopScope(
-      canPop: false,
+      canPop: !shouldInterceptBack,
       onPopInvokedWithResult: (bool didPop, dynamic result) async {
-        if (didPop) {
+        if (didPop || !shouldInterceptBack) {
           return;
         }
         
-        // Double tap to exit behavior
+        // Double tap to exit behavior (only on Home tab)
         final now = DateTime.now();
         final backButtonHasNotBeenPressedOrSnackBarHasBeenClosed =
             _lastPressedAt == null ||

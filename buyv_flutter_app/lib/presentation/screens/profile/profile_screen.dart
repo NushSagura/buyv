@@ -172,8 +172,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Consumer<auth_provider.AuthProvider>(
       builder: (context, auth_provider.AuthProvider authProvider, child) {
         // ... (existing build logic mainly calls stats widgets which take ints/strings)
-        // Check if user is authenticated
-        if (!authProvider.isAuthenticated || authProvider.currentUser == null) {
+        // Check if user is authenticated - but don't show prompt if just loading
+        if (!authProvider.isAuthenticated && !authProvider.isLoading) {
           return RequireLoginPrompt(
             onLogin: () {
               context.go('/login');
@@ -187,8 +187,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         }
 
-        // Show loading indicator
-        if (authProvider.isLoading) {
+        // Show loading indicator while checking authentication
+        if (authProvider.isLoading || authProvider.currentUser == null) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );

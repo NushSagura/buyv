@@ -106,8 +106,14 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   @override
   void dispose() {
-    _controller?.pause();
-    _controller?.dispose();
+    debugPrint('🛑 VideoPlayerWidget: Disposing video player');
+    // Stop and dispose immediately
+    if (_controller != null) {
+      _controller!.pause();
+      _controller!.setVolume(0); // Mute before dispose
+      _controller!.dispose();
+      _controller = null;
+    }
     super.dispose();
   }
 
@@ -140,14 +146,24 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   void _handleVisibilityChanged(VisibilityInfo info) {
     if (!_initialized || _controller == null) return;
 
-    // Pause when less than 20% visible
+    // Pause and mute when less than 20% visible
     if (info.visibleFraction < 0.2) {
       if (_controller!.value.isPlaying) {
         _controller!.pause();
+        _controller!.setVolume(0); // Mute immediately
         _isPlaying = false;
-        debugPrint('⏸️ Video paused - not visible (${(info.visibleFraction * 100).toStringAsFixed(0)}%)');
+        debugPrint('⏸️ Video paused & muted - not visible (${(info.visibleFraction * 100).toStringAsFixed(0)}%)');
+      }
+    } else if (info.visibleFraction >= 0.8 && widget.autoPlay) {
+      // Restore volume and play when visible
+      if (!_controller!.value.isPlaying) {
+        _controller!.setVolume(1.0);
+        _controller!.play();
+        _isPlaying = true;
+        debugPrint('▶️ Video playing - fully visible');
       }
     }
+  }
     // Resume if was auto-playing and now visible
     else if (info.visibleFraction > 0.8 && widget.autoPlay && !_isPlaying) {
       _controller!.play();
