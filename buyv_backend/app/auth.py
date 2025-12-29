@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from jose import jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
@@ -68,15 +69,34 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     if db.query(models.User).filter(models.User.username == payload.username).first():
         raise HTTPException(status_code=400, detail="Username already taken")
 
-    user = models.User(
-        email=payload.email,
-        username=payload.username,
-        display_name=payload.display_name, # Accessed via snake_case attribute on model
-        password_hash=pwd_context.hash(payload.password),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    try:
+        user = models.User(
+            email=payload.email,
+            username=payload.username,
+            display_name=payload.display_name, # Accessed via snake_case attribute on model
+            password_hash=pwd_context.hash(payload.password),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    except IntegrityError as e:
+        db.rollback()
+        # Handle database constraint violations
+        error_msg = str(e.orig)
+        if "users_email_key" in error_msg or "email" in error_msg.lower():
+            raise HTTPException(status_code=400, detail="Email already registered")
+        elif "users_username_key" in error_msg or "username" in error_msg.lower():
+            raise HTTPException(status_code=400, detail="Username already taken")
+        elif "users_pkey" in error_msg or "duplicate key" in error_msg.lower():
+            raise HTTPException(
+                status_code=500, 
+                detail="Database configuration error. Please contact support."
+            )
+        else:
+            raise HTTPException(status_code=500, detail="Registration failed. Please try again.")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
     token, expires_in = create_access_token({"sub": user.uid})
     refresh_token = create_refresh_token({"sub": user.uid})
