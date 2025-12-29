@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
-import '../onboarding/onboarding_screen.dart';
+import '../../../core/router/route_names.dart';
+import '../../providers/auth_provider.dart';
+import '../../../services/security/secure_token_manager.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -42,12 +46,56 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     
     _animationController.forward();
     
+    // Vérifier le token et rediriger vers la page appropriée
     Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-      );
+      _checkAuthAndNavigate();
     });
+  }
+  
+  Future<void> _checkAuthAndNavigate() async {
+    if (!mounted) return;
+    
+    try {
+      // Vérifier si l'utilisateur a un token valide
+      final hasValidToken = await SecureTokenManager.isAccessTokenValid();
+      
+      if (hasValidToken) {
+        // Token valide - essayer de récupérer les infos utilisateur
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        
+        // Si l'utilisateur est déjà authentifié, aller à l'accueil
+        if (authProvider.isAuthenticated) {
+          debugPrint('✅ Utilisateur déjà connecté - redirection vers home');
+          if (mounted) {
+            context.go(RouteNames.home);
+          }
+        } else {
+          // Token existe mais utilisateur pas chargé - recharger
+          debugPrint('🔄 Token trouvé - rechargement utilisateur');
+          await authProvider.reloadUserData();
+          
+          if (mounted) {
+            if (authProvider.isAuthenticated) {
+              context.go(RouteNames.home);
+            } else {
+              context.go(RouteNames.onboarding);
+            }
+          }
+        }
+      } else {
+        // Pas de token valide - aller à l'onboarding
+        debugPrint('⚠️ Pas de token valide - redirection vers onboarding');
+        if (mounted) {
+          context.go(RouteNames.onboarding);
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la vérification auth: $e');
+      // En cas d'erreur, aller à l'onboarding
+      if (mounted) {
+        context.go(RouteNames.onboarding);
+      }
+    }
   }
 
   @override

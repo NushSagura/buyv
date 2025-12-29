@@ -25,17 +25,22 @@ class AuthProvider extends ChangeNotifier {
     try {
       _status = AuthStatus.loading;
       notifyListeners();
+      
+      // Vérifier d'abord si un token existe
       final user = await _authRepository.getCurrentUser();
       if (user != null) {
         _currentUser = user;
         _status = AuthStatus.authenticated;
+        debugPrint('✅ Utilisateur authentifié automatiquement: ${user.displayName}');
       } else {
         _status = AuthStatus.unauthenticated;
         _currentUser = null;
+        debugPrint('⚠️ Aucun utilisateur connecté');
       }
-    } catch (_) {
+    } catch (e) {
       _status = AuthStatus.unauthenticated;
       _currentUser = null;
+      debugPrint('❌ Erreur d\'initialisation auth: $e');
     }
     notifyListeners();
   }
@@ -174,14 +179,27 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> reloadUserData() async {
-    if (_currentUser != null) {
-      try {
-        await _loadUserData(_currentUser!.id);
-      } catch (e) {
-        _errorMessage = e.toString();
-        notifyListeners();
+    try {
+      _status = AuthStatus.loading;
+      notifyListeners();
+      
+      final user = await _authRepository.getCurrentUser();
+      if (user != null) {
+        _currentUser = user;
+        _status = AuthStatus.authenticated;
+        debugPrint('✅ Données utilisateur rechargées: ${user.displayName}');
+      } else {
+        _status = AuthStatus.unauthenticated;
+        _currentUser = null;
+        debugPrint('⚠️ Impossible de recharger les données utilisateur');
       }
+    } catch (e) {
+      _status = AuthStatus.unauthenticated;
+      _currentUser = null;
+      _errorMessage = e.toString();
+      debugPrint('❌ Erreur rechargement données: $e');
     }
+    notifyListeners();
   }
 
   void clearError() {
