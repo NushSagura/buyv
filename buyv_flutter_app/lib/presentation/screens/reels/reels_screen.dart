@@ -139,13 +139,15 @@ class _ReelsScreenState extends State<ReelsScreen>
   }
 
   void _pauseAllVideos() {
-    setState(() {
-      _videoPlayStates.clear();
-    });
+    if (mounted) {
+      setState(() {
+        _videoPlayStates.clear();
+      });
+    }
   }
 
   void _resumeCurrentVideo() {
-    if (_reels.isNotEmpty && _currentIndex < _reels.length) {
+    if (mounted && _reels.isNotEmpty && _currentIndex < _reels.length) {
       final currentReelId = _reels[_currentIndex].id;
       setState(() {
         _videoPlayStates[currentReelId] = true;
@@ -154,7 +156,7 @@ class _ReelsScreenState extends State<ReelsScreen>
   }
 
   void _loadReelsForTab(String tab) {
-    if (_isLoading) return;
+    if (_isLoading || !mounted) return;
 
     setState(() {
       _isLoading = true;
@@ -170,6 +172,8 @@ class _ReelsScreenState extends State<ReelsScreen>
   }
 
   Future<void> _loadReels() async {
+    if (!mounted) return;
+    
     try {
       setState(() {
         _isLoading = true;
@@ -273,27 +277,31 @@ class _ReelsScreenState extends State<ReelsScreen>
           '✅ Loaded ${reels.length} reels from ${postsJson.length} total posts',
         );
 
+        if (!mounted) return;
+        
         setState(() {
           _reels = reels;
           _isLoading = false;
+        });
 
-          // Navigate to target reel if specified
-          if (widget.targetReelId != null) {
-            final targetIndex = _reels.indexWhere(
-              (reel) => reel.id == widget.targetReelId,
-            );
-            if (targetIndex >= 0) {
-              _currentIndex = targetIndex;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Navigate to target reel if specified (APRÈS setState)
+        if (widget.targetReelId != null) {
+          final targetIndex = _reels.indexWhere(
+            (reel) => reel.id == widget.targetReelId,
+          );
+          if (targetIndex >= 0 && mounted) {
+            _currentIndex = targetIndex;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _pageController.hasClients) {
                 _pageController.animateToPage(
                   targetIndex,
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                 );
-              });
-            }
+              }
+            });
           }
-        });
+        }
       } else {
         throw Exception('Failed to load reels: ${response.statusCode}');
       }

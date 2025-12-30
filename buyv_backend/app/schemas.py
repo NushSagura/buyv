@@ -70,6 +70,7 @@ class UserStats(CamelModel):
     reels_count: int
     products_count: int
     total_likes: int
+    saved_posts_count: int  # Nombre de posts bookmarkés
 
 class LoginRequest(BaseModel):
     email: EmailStr

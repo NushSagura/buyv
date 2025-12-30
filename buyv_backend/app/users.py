@@ -100,12 +100,18 @@ def get_user_stats(uid: str, db: Session = Depends(get_db)):
         models.Post.user_id == user.id
     ).scalar() or 0
 
+    # Count bookmarked posts
+    saved_posts_count = db.query(models.PostBookmark).filter(
+        models.PostBookmark.user_id == user.id
+    ).count()
+
     return UserStats(
         followers_count=user.followers_count,
         following_count=user.following_count,
         reels_count=reels_count,
         products_count=products_count,
-        total_likes=total_likes
+        total_likes=total_likes,
+        saved_posts_count=saved_posts_count
     )
 
 @router.put("/{uid}", response_model=UserOut)

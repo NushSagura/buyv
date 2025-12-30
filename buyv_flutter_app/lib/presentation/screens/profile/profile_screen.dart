@@ -10,6 +10,7 @@ import '../../../services/user_service.dart';
 import '../../../services/post_service.dart';
 import 'follow_list_screen.dart';
 import '../../../data/providers/user_provider.dart';
+import '../../../core/utils/remote_logger.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -29,6 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _likesCount = 0;
   int _reelsCount = 0;
   int _productsCount = 0;
+  int _savedPostsCount = 0;  // Nombre de posts bookmarkés
 
   // Content lists
   List<PostModel> _userReels = [];
@@ -38,6 +40,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool _isLoadingStats = true;
   bool _isLoadingContent = true;
+  
+  // ✅ NOUVEAU: Cache pour éviter rechargements
+  DateTime? _lastLoadTime;
+  static const _cacheDuration = Duration(minutes: 5);
+  
+  // ✅ NOUVEAU: Track quels tabs sont chargés
+  final Set<int> _loadedTabs = {};
 
   @override
   void initState() {
@@ -77,29 +86,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (currentUserId == null) return;
 
+    // ✅ CACHE: Ne recharge que si nécessaire
+    if (_lastLoadTime != null && 
+        DateTime.now().difference(_lastLoadTime!) < _cacheDuration &&
+        _loadedTabs.contains(_selectedTabIndex)) {
+      RemoteLogger.log('📦 Using cached profile data');
+      return;
+    }
+
+    // Log l'action de chargement du profil
+    final actionId = RemoteLogger.logUserAction(
+      'Load profile data',
+      context: {'userId': currentUserId},
+    );
+
     setState(() {
       _isLoadingStats = true;
       _isLoadingContent = true;
     });
 
     try {
-      // Load ALL statistics in ONE call
-      final stats = await _userService.getUserStatistics(currentUserId);
+      RemoteLogger.logFlutterEvent(
+        'Fetching user statistics',
+        actionId: actionId,
+      );
+      
+      // ✅ OPTIMISATION: Charge stats ET content en PARALLÈLE
+      final results = await Future.wait([
+        // Appel 1: Stats
+        _userService.getUserStatistics(currentUserId, actionId: actionId),
+        // Appel 2: Content du tab actuel
+        _loadTabContentData(currentUserId, _selectedTabIndex, actionId),
+      ]);
 
-      _followersCount = stats['followers'] ?? 0;
-      _followingCount = stats['following'] ?? 0;
-      _reelsCount = stats['reels'] ?? 0;
-      _productsCount = stats['products'] ?? 0;
-      _likesCount = stats['likes'] ?? 0;
+      // Résultats
+      final stats = results[0] as Map<String, int>;
+      final tabContent = results[1] as List<PostModel>;
 
+      // ✅ OPTIMISATION: UN SEUL setState au lieu de 2
+      if (!mounted) return;
       setState(() {
+        // Stats
+        _followersCount = stats['followers'] ?? 0;
+        _followingCount = stats['following'] ?? 0;
+        _reelsCount = stats['reels'] ?? 0;
+        _productsCount = stats['products'] ?? 0;
+        _likesCount = stats['likes'] ?? 0;
+        _savedPostsCount = stats['savedPosts'] ?? 0;
+
+        // Content
+        _updateTabContent(_selectedTabIndex, tabContent);
+        
+        // Cache
+        _loadedTabs.add(_selectedTabIndex);
+        _lastLoadTime = DateTime.now();
+        
+        // Loading done
         _isLoadingStats = false;
+        _isLoadingContent = false;
       });
 
-      // Load content for current tab
-      await _loadTabContent();
+      RemoteLogger.logFlutterEvent(
+        'Profile loaded (parallel)',
+        actionId: actionId,
+        data: {
+          'followers': _followersCount,
+          'reels': _reelsCount,
+          'savedPosts': _savedPostsCount,
+          'tabItems': tabContent.length,
+        },
+      );
     } catch (e) {
-      debugPrint('Error loading profile data: $e');
+      RemoteLogger.error(
+        'Error loading profile data',
+        error: e,
+        data: {'actionId': actionId, 'userId': currentUserId},
+      );
+      if (!mounted) return;
       setState(() {
         _isLoadingStats = false;
         _isLoadingContent = false;
@@ -107,7 +170,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _loadTabContent() async {
+  // ✅ NOUVEAU: Charge content d'un tab spécifique (pour parallélisation)
+  Future<List<PostModel>> _loadTabContentData(
+    String userId, 
+    int tabIndex,
+    String? actionId,
+  ) async {
+    RemoteLogger.logFlutterEvent(
+      'Loading tab $tabIndex content (parallel)',
+      actionId: actionId,
+    );
+    
+    switch (tabIndex) {
+      case 0: // Reels
+        RemoteLogger.logBackendCall('/posts/user/$userId/reels', actionId: actionId);
+        return await _postService.getUserReels(userId);
+      case 1: // Products
+        RemoteLogger.logBackendCall('/posts/user/$userId/products', actionId: actionId);
+        return await _postService.getUserProducts(userId);
+      case 2: // Saved
+        RemoteLogger.logBackendCall('/bookmarks/user/$userId', actionId: actionId);
+        return await _postService.getUserBookmarkedPosts(userId);
+      case 3: // Liked
+        RemoteLogger.logBackendCall('/likes/user/$userId', actionId: actionId);
+        return await _postService.getUserLikedPosts(userId);
+      default:
+        return [];
+    }
+  }
+
+  // ✅ NOUVEAU: Met à jour la bonne liste selon le tab
+  void _updateTabContent(int tabIndex, List<PostModel> content) {
+    switch (tabIndex) {
+      case 0:
+        _userReels = content;
+        break;
+      case 1:
+        _userProducts = content;
+        break;
+      case 2:
+        _userSavedPosts = content;
+        break;
+      case 3:
+        _userLikedPosts = content;
+        break;
+    }
+  }
+
+  Future<void> _loadTabContent({String? actionId}) async {
     final authProvider = Provider.of<auth_provider.AuthProvider>(
       context,
       listen: false,
@@ -115,34 +225,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final String? currentUserId = authProvider.currentUser?.id;
     if (currentUserId == null) return;
 
+    // ✅ CACHE: Si déjà chargé, ne recharge pas
+    if (_loadedTabs.contains(_selectedTabIndex)) {
+      RemoteLogger.log('📦 Tab $_selectedTabIndex already loaded (cached)');
+      return;
+    }
+
     setState(() {
       _isLoadingContent = true;
     });
 
     try {
-      switch (_selectedTabIndex) {
-        case 0: // Reels
-          _userReels = await _postService.getUserReels(currentUserId);
-          break;
-        case 1: // Products
-          _userProducts = await _postService.getUserProducts(currentUserId);
-          break;
-        case 2: // Saved
-          _userSavedPosts = await _postService.getUserBookmarkedPosts(
-            currentUserId,
-          );
-          break;
-        case 3: // Liked
-          _userLikedPosts = await _postService.getUserLikedPosts(currentUserId);
-          break;
-      }
+      final content = await _loadTabContentData(
+        currentUserId, 
+        _selectedTabIndex,
+        actionId,
+      );
+      
+      if (!mounted) return;
+      setState(() {
+        _updateTabContent(_selectedTabIndex, content);
+        _loadedTabs.add(_selectedTabIndex);
+        _isLoadingContent = false;
+      });
+      
+      RemoteLogger.logFlutterEvent(
+        'Tab content loaded',
+        actionId: actionId,
+        data: {'tab': _selectedTabIndex, 'itemCount': content.length},
+      );
     } catch (e) {
-      debugPrint('Error loading tab content: $e');
+      RemoteLogger.error(
+        'Error loading tab content',
+        error: e,
+        data: {'actionId': actionId, 'tab': _selectedTabIndex},
+      );
+      if (!mounted) return;
+      setState(() {
+        _isLoadingContent = false;
+      });
     }
-
-    setState(() {
-      _isLoadingContent = false;
-    });
+  }
+  
+  List<PostModel> _getCurrentTabItems() {
+    switch (_selectedTabIndex) {
+      case 0: return _userReels;
+      case 1: return _userProducts;
+      case 2: return _userSavedPosts;
+      case 3: return _userLikedPosts;
+      default: return [];
+    }
   }
 
   // ... (build methods stay similar until _buildContentGrid)
@@ -190,7 +322,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           body: user == null
               ? const Center(child: Text('No user data available'))
               : RefreshIndicator(
-                  onRefresh: _loadProfileData,
+                  onRefresh: () async {
+                    // ✅ Force rechargement (ignore cache)
+                    _loadedTabs.clear();
+                    _lastLoadTime = null;
+                    await _loadProfileData();
+                  },
                   child: CustomScrollView(
                     slivers: [
                       // AppBar with Settings button
@@ -425,15 +562,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         2,
                                         Icons.bookmark,
                                         Icons.bookmark_border,
-                                        null,
+                                        _savedPostsCount, // ✅ Toujours afficher, même 0
                                       ), // Saved
                                       _buildTabIconWithCount(
                                         3,
                                         Icons.favorite,
                                         Icons.favorite_border,
-                                        _userLikedPosts.isNotEmpty
-                                            ? _userLikedPosts.length
-                                            : null,
+                                        _userLikedPosts.length, // ✅ Toujours afficher, même 0
                                       ), // Liked
                                     ],
                                   ),
@@ -446,13 +581,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
 
                       SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: 650,
-                          child: _isLoadingContent
-                              ? const Center(child: CircularProgressIndicator())
-                              : _buildTabContent(),
-                        ),
+                        child: _isLoadingContent
+                            ? const SizedBox(
+                                height: 300,
+                                child: Center(child: CircularProgressIndicator()),
+                              )
+                            : const SizedBox.shrink(),
                       ),
+                      
+                      // Content grid as Sliver (pas de hauteur fixe)
+                      if (!_isLoadingContent)
+                        _buildTabContentSliver(),
                     ],
                   ),
                 ),
@@ -489,10 +628,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isSelected = _selectedTabIndex == index;
     return GestureDetector(
       onTap: () {
+        final actionId = RemoteLogger.logUserAction(
+          'Switch to tab $index',
+          context: {'tabName': ['Reels', 'Products', 'Saved', 'Liked'][index]},
+        );
+        
         setState(() {
           _selectedTabIndex = index;
         });
-        _loadTabContent();
+        _loadTabContent(actionId: actionId);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -510,15 +654,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: isSelected ? const Color(0xFFFF6F00) : Colors.grey,
               size: 24,
             ),
-            if (count != null)
-              Text(
-                count.toString(),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isSelected ? const Color(0xFFFF6F00) : Colors.grey,
-                  fontWeight: FontWeight.w500,
-                ),
+            // ✅ Toujours afficher le compteur (même 0)
+            Text(
+              count?.toString() ?? '0',
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected ? const Color(0xFFFF6F00) : Colors.grey,
+                fontWeight: FontWeight.w500,
               ),
+            ),
           ],
         ),
       ),
@@ -554,6 +698,113 @@ class _ProfileScreenState extends State<ProfileScreen> {
       default:
         return const Center(child: Text('Unknown tab'));
     }
+  }
+
+  Widget _buildTabContentSliver() {
+    List<PostModel> items;
+    String emptyTitle;
+    String emptySubtitle;
+
+    switch (_selectedTabIndex) {
+      case 0:
+        items = _userReels;
+        emptyTitle = 'No reels yet';
+        emptySubtitle = 'Start creating reels to see them here';
+        break;
+      case 1:
+        items = _userProducts;
+        emptyTitle = 'No products yet';
+        emptySubtitle = 'Start adding products to see them here';
+        break;
+      case 2:
+        items = _userSavedPosts;
+        emptyTitle = 'No saved content yet';
+        emptySubtitle = 'Save posts to see them here';
+        break;
+      case 3:
+        items = _userLikedPosts;
+        emptyTitle = 'No liked content yet';
+        emptySubtitle = 'Like posts to see them here';
+        break;
+      default:
+        return const SliverToBoxAdapter(child: Text('Unknown tab'));
+    }
+
+    if (items.isEmpty) {
+      return SliverToBoxAdapter(
+        child: _buildEmptyState(emptyTitle, emptySubtitle),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.all(16),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: 1,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final item = items[index];
+            // UNIQUE KEY pour chaque item pour éviter Duplicate GlobalKeys
+            final itemKey = ValueKey('profile_${_selectedTabIndex}_${item.id}');
+            
+            return GestureDetector(
+              key: itemKey,
+              onTap: () {
+                // Log user action avec correlation ID
+                final actionId = RemoteLogger.logUserAction(
+                  'Tap video from profile',
+                  context: {
+                    'postId': item.id,
+                    'tab': _selectedTabIndex,
+                    'type': item.type,
+                  },
+                );
+                
+                RemoteLogger.logFlutterEvent(
+                  'Navigate to /reels',
+                  actionId: actionId,
+                  data: {'startPostId': item.id},
+                );
+                
+                // Navigation APRÈS le frame actuel pour éviter setState pendant build
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && (item.type == 'reel' || item.type == 'video')) {
+                    context.push('/reels', extra: {'startPostId': item.id});
+                  }
+                });
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey[200],
+                ),
+                child: item.videoUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          (item.thumbnailUrl?.isNotEmpty ?? false)
+                              ? item.thumbnailUrl!
+                              : item.videoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(Icons.videocam, size: 40);
+                          },
+                        ),
+                      )
+                    : const Center(
+                        child: Icon(Icons.post_add, size: 40, color: Colors.grey),
+                      ),
+              ),
+            );
+          },
+          childCount: items.length,
+        ),
+      ),
+    );
   }
 
   Widget _buildContentGrid(

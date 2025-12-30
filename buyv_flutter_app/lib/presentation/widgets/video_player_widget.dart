@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import '../../core/utils/remote_logger.dart';
 
 class VideoPlayerWidget extends StatefulWidget {
   final String videoUrl;
@@ -106,14 +107,44 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   @override
-  void dispose() {
-    debugPrint('🛑 VideoPlayerWidget: Disposing video player');
-    // Stop and dispose immediately
-    if (_controller != null) {
+  void deactivate() {
+    // Called when widget is removed from tree temporarily
+    // Stop video immediately to prevent audio bleed
+    RemoteLogger.videoLog('Widget deactivate() called', data: {
+      'isPlaying': _controller?.value.isPlaying ?? false,
+      'url': widget.videoUrl,
+    });
+    
+    if (_controller != null && _controller!.value.isPlaying) {
       _controller!.pause();
-      _controller!.setVolume(0); // Mute before dispose
-      _controller!.dispose();
-      _controller = null;
+      _controller!.setVolume(0);
+      RemoteLogger.videoLog('Video stopped in deactivate()');
+    }
+    super.deactivate();
+  }
+
+  @override
+  void dispose() {
+    // Final cleanup when widget is permanently removed
+    RemoteLogger.videoLog('Widget dispose() called', data: {
+      'isPlaying': _controller?.value.isPlaying ?? false,
+      'url': widget.videoUrl,
+    });
+    
+    if (_controller != null) {
+      // Triple-ensure no audio plays
+      try {
+        _controller!.pause();
+        _controller!.setVolume(0);
+        _controller!.seekTo(Duration.zero); // Reset position
+        _controller!.dispose();
+        RemoteLogger.videoLog('Video controller disposed successfully');
+      } catch (e) {
+        // Ignore disposal errors on some devices
+        RemoteLogger.error('Error disposing video controller', error: e);
+      } finally {
+        _controller = null;
+      }
     }
     super.dispose();
   }
@@ -145,25 +176,37 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   void _handleVisibilityChanged(VisibilityInfo info) {
-    if (!_initialized || _controller == null) return;
+    if (!_initialized || _controller == null || !mounted) return;
 
-    // Pauser et couper le son plus tôt pour éviter le lag audio sur le Web
+    // Pauser et couper le son plus tôt pour éviter le lag audio
     if (info.visibleFraction < 0.5) {
       if (_controller!.value.isPlaying) {
-        _controller!.pause();
-        _controller!.setVolume(0.0); // Mute total
-        _isPlaying = false;
-        debugPrint(
-          '⏸️ Video paused & muted - hidden (${(info.visibleFraction * 100).toStringAsFixed(0)}%)',
-        );
+        try {
+          _controller!.pause();
+          _controller!.setVolume(0.0); // Mute total
+          if (mounted) {
+            setState(() {
+              _isPlaying = false;
+            });
+          }
+        } catch (e) {
+          // Ignore errors on some devices
+        }
       }
     } else if (info.visibleFraction >= 0.8 && widget.autoPlay) {
       // Restore volume and play when fully visible
-      if (!_controller!.value.isPlaying) {
-        _controller!.setVolume(1.0);
-        _controller!.play();
-        _isPlaying = true;
-        debugPrint('▶️ Video playing - fully visible');
+      if (!_controller!.value.isPlaying && mounted) {
+        try {
+          _controller!.setVolume(1.0);
+          _controller!.play();
+          if (mounted) {
+            setState(() {
+              _isPlaying = true;
+            });
+          }
+        } catch (e) {
+          // Ignore errors on some devices
+        }
       }
     }
   }
@@ -245,6 +288,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       onVisibilityChanged: _handleVisibilityChanged,
       child: GestureDetector(
         onTap: _togglePlayPause,
+        behavior: HitTestBehavior.opaque, // Intercepte le tap sans le propager au parent
         child: Stack(
           alignment: Alignment.center,
           children: [

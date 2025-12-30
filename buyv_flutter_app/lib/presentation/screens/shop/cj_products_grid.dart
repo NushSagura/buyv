@@ -113,19 +113,22 @@ class CJProductsGrid extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min, // FIX: Ne pas forcer max height
                   children: [
                     // Product Name
-                    Text(
-                      product.productName,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF0D3D67),
+                    Flexible( // FIX: Permet au texte de s'adapter
+                      child: Text(
+                        product.productName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0D3D67),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2), // FIX: Réduit de 4 à 2
                     // Price and Commission
                     Row(
                       children: [

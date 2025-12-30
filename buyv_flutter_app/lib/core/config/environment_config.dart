@@ -92,8 +92,19 @@ class EnvironmentConfig {
   // 🔍 HELPERS DE DEBUG
   // ═══════════════════════════════════════════════════════════════════
 
-  /// Affiche les informations de configuration actuelle
+  // ═══════════════════════════════════════════════════════════════════
+  // 🐛 DEBUG & LOGGING
+  // ═══════════════════════════════════════════════════════════════════
+  
+  /// Active les logs de debug en console
+  /// ⚠️ TOUJOURS FALSE EN PRODUCTION pour éviter lag/lenteur
+  static const bool enableDebugLogs = false; // ← DÉSACTIVÉ EN PRODUCTION
+
+  /// Affiche la configuration au démarrage uniquement en mode développement
   static void printConfig() {
+    // N'affiche rien en production pour optimiser les performances
+    if (!isDevelopment || !enableDebugLogs) return;
+    
     if (kDebugMode) {
       print('════════════════════════════════════════');
       print('🔧 CONFIGURATION ENVIRONNEMENT');

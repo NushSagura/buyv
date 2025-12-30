@@ -28,6 +28,7 @@ import '../../presentation/screens/payment/payment_methods_screen.dart';
 import '../../presentation/screens/orders/orders_track_screen.dart';
 import '../../presentation/screens/orders/orders_history_screen.dart';
 import '../../presentation/screens/help/help_screen.dart';
+import '../../presentation/screens/settings/diagnostic_logs_screen.dart';
 import '../../presentation/screens/splash/splash_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 import './route_names.dart';
@@ -289,6 +290,11 @@ class AppRouter {
           path: RouteNames.help,
           name: 'help',
           builder: (context, state) => const HelpScreen(),
+        ),
+        GoRoute(
+          path: '/diagnostic-logs',
+          name: 'diagnostic-logs',
+          builder: (context, state) => const DiagnosticLogsScreen(),
         ),
         GoRoute(
           path: RouteNames.recentlyViewed,

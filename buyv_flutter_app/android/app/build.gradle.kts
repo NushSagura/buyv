@@ -32,13 +32,39 @@ android {
         versionName = "1.0.0"
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            
+            // ═══════════════════════════════════════════════════════════
+            // 🚀 OPTIMISATIONS MAXIMALES POUR PRODUCTION
+            // ═══════════════════════════════════════════════════════════
+            
+            // Active ProGuard/R8 pour réduction de taille et obfuscation
             isMinifyEnabled = true
+            
+            // Réduit la taille des ressources (images, layouts)
+            isShrinkResources = true
+            
+            // Fichiers de règles ProGuard
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            
+            // Désactive les logs en production
+            buildConfigField("boolean", "DEBUG_MODE", "false")
+        }
+        
+        debug {
+            // Active les logs en debug
+            buildConfigField("boolean", "DEBUG_MODE", "true")
         }
     }
 }

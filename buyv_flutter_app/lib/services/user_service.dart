@@ -3,6 +3,7 @@ import '../domain/models/user_model.dart';
 import '../services/auth_api_service.dart';
 import 'follow_api_service.dart';
 import 'post_api_service.dart';
+import '../core/utils/remote_logger.dart';
 
 class UserService {
   // Get current user via backend
@@ -98,19 +99,40 @@ class UserService {
   }
 
   // Get user statistics (posts, followers, following)
-  Future<Map<String, int>> getUserStatistics(String userId) async {
+  Future<Map<String, int>> getUserStatistics(String userId, {String? actionId}) async {
     try {
+      RemoteLogger.logBackendCall(
+        '/users/$userId/stats',
+        actionId: actionId,
+        method: 'GET',
+      );
+      
       final res = await AuthApiService.getUserStats(userId);
-      return {
-        'posts': (res['reelsCount'] ?? 0) + (res['productsCount'] ?? 0),
-        'reels': res['reelsCount'] ?? 0,
-        'products': res['productsCount'] ?? 0,
-        'followers': res['followersCount'] ?? 0,
-        'following': res['followingCount'] ?? 0,
-        'likes': res['totalLikes'] ?? 0,
+      
+      final Map<String, int> stats = {
+        'posts': ((res['reelsCount'] ?? 0) as int) + ((res['productsCount'] ?? 0) as int),
+        'reels': (res['reelsCount'] ?? 0) as int,
+        'products': (res['productsCount'] ?? 0) as int,
+        'followers': (res['followersCount'] ?? 0) as int,
+        'following': (res['followingCount'] ?? 0) as int,
+        'likes': (res['totalLikes'] ?? 0) as int,
+        'savedPosts': (res['saved_posts_count'] ?? 0) as int,
       };
+      
+      RemoteLogger.logBackendResponse(
+        '/users/$userId/stats',
+        actionId: actionId,
+        statusCode: 200,
+        data: {'stats': stats},
+      );
+      
+      return stats;
     } catch (e) {
-      debugPrint('Error getting user statistics: $e');
+      RemoteLogger.error(
+        'Failed to get user statistics',
+        error: e,
+        data: {'userId': userId, 'actionId': actionId},
+      );
       return {
         'posts': 0,
         'reels': 0,
@@ -118,6 +140,7 @@ class UserService {
         'followers': 0,
         'following': 0,
         'likes': 0,
+        'savedPosts': 0,
       };
     }
   }

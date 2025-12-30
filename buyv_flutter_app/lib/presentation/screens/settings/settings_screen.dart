@@ -98,6 +98,14 @@ class SettingsScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _buildSettingsItem(
                     context,
+                    icon: Icons.bug_report_outlined,
+                    title: 'Diagnostic Logs',
+                    subtitle: 'View and share app logs',
+                    onTap: () => context.push('/diagnostic-logs'),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSettingsItem(
+                    context,
                     icon: Icons.delete_forever,
                     title: 'Delete Account',
                     onTap: () => _showDeleteAccountDialog(context),
@@ -129,6 +137,7 @@ class SettingsScreen extends StatelessWidget {
     BuildContext context, {
     required IconData icon,
     required String title,
+    String? subtitle,
     required VoidCallback onTap,
     bool isLogout = false,
     bool isDestructive = false,
@@ -169,6 +178,12 @@ class SettingsScreen extends StatelessWidget {
             color: (isLogout || isDestructive) ? Colors.red : Colors.blue,
           ),
         ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              )
+            : null,
         trailing: Icon(
           Icons.chevron_right,
           color: (isLogout || isDestructive) ? Colors.red : Colors.blue,
