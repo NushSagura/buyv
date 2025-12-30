@@ -42,7 +42,7 @@ class PostModel {
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
     // Safe int parsing helper
-    int _parseInt(dynamic value, [int defaultValue = 0]) {
+    int parseInt(dynamic value, [int defaultValue = 0]) {
       if (value == null) return defaultValue;
       if (value is int) return value;
       if (value is String) return int.tryParse(value) ?? defaultValue;
@@ -59,10 +59,10 @@ class PostModel {
       videoUrl: json['videoUrl']?.toString() ?? '',
       thumbnailUrl: json['thumbnailUrl']?.toString(),
       caption: json['caption']?.toString(),
-      likesCount: _parseInt(json['likesCount']),
-      commentsCount: _parseInt(json['commentsCount']),
-      sharesCount: _parseInt(json['sharesCount']),
-      viewsCount: _parseInt(json['viewsCount']),
+      likesCount: parseInt(json['likesCount']),
+      commentsCount: parseInt(json['commentsCount']),
+      sharesCount: parseInt(json['sharesCount']),
+      viewsCount: parseInt(json['viewsCount']),
       isLiked: json['isLiked'] == true,
       isBookmarked: json['isBookmarked'] == true,
       createdAt: DateTime.parse(
@@ -96,5 +96,47 @@ class PostModel {
       'updatedAt': updatedAt.toIso8601String(),
       'metadata': metadata,
     };
+  }
+
+  PostModel copyWith({
+    String? id,
+    String? userId,
+    String? username,
+    String? userProfileImage,
+    bool? isUserVerified,
+    String? type,
+    String? videoUrl,
+    String? thumbnailUrl,
+    String? caption,
+    int? likesCount,
+    int? commentsCount,
+    int? sharesCount,
+    int? viewsCount,
+    bool? isLiked,
+    bool? isBookmarked,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Map<String, dynamic>? metadata,
+  }) {
+    return PostModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      username: username ?? this.username,
+      userProfileImage: userProfileImage ?? this.userProfileImage,
+      isUserVerified: isUserVerified ?? this.isUserVerified,
+      type: type ?? this.type,
+      videoUrl: videoUrl ?? this.videoUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      caption: caption ?? this.caption,
+      likesCount: likesCount ?? this.likesCount,
+      commentsCount: commentsCount ?? this.commentsCount,
+      sharesCount: sharesCount ?? this.sharesCount,
+      viewsCount: viewsCount ?? this.viewsCount,
+      isLiked: isLiked ?? this.isLiked,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      metadata: metadata ?? this.metadata,
+    );
   }
 }

@@ -38,10 +38,10 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       debugPrint('⚠️ Controller already exists, skipping initialization');
       return;
     }
-    
+
     debugPrint('🎥 VideoPlayerWidget: Initializing video player');
     debugPrint('🎥 Video URL: ${widget.videoUrl}');
-    
+
     // Validation upfront
     if (widget.videoUrl.isEmpty) {
       debugPrint('❌ Video URL is empty!');
@@ -51,8 +51,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       });
       return;
     }
-    
-    if (!widget.videoUrl.startsWith('http://') && !widget.videoUrl.startsWith('https://')) {
+
+    if (!widget.videoUrl.startsWith('http://') &&
+        !widget.videoUrl.startsWith('https://')) {
       debugPrint('❌ Invalid video URL (not HTTP/HTTPS): ${widget.videoUrl}');
       setState(() {
         _hasError = true;
@@ -146,16 +147,18 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   void _handleVisibilityChanged(VisibilityInfo info) {
     if (!_initialized || _controller == null) return;
 
-    // Pause and mute when less than 20% visible
-    if (info.visibleFraction < 0.2) {
+    // Pauser et couper le son plus tôt pour éviter le lag audio sur le Web
+    if (info.visibleFraction < 0.5) {
       if (_controller!.value.isPlaying) {
         _controller!.pause();
-        _controller!.setVolume(0); // Mute immediately
+        _controller!.setVolume(0.0); // Mute total
         _isPlaying = false;
-        debugPrint('⏸️ Video paused & muted - not visible (${(info.visibleFraction * 100).toStringAsFixed(0)}%)');
+        debugPrint(
+          '⏸️ Video paused & muted - hidden (${(info.visibleFraction * 100).toStringAsFixed(0)}%)',
+        );
       }
     } else if (info.visibleFraction >= 0.8 && widget.autoPlay) {
-      // Restore volume and play when visible
+      // Restore volume and play when fully visible
       if (!_controller!.value.isPlaying) {
         _controller!.setVolume(1.0);
         _controller!.play();
@@ -189,10 +192,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Text(
                   _errorMessage ?? 'Failed to load video',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                   textAlign: TextAlign.center,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,

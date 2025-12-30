@@ -85,6 +85,18 @@ class PostApiService {
     return _parseList(res);
   }
 
+  static Future<List<Map<String, dynamic>>> getUserBookmarkedPosts(
+    String uid, {
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final res = await http.get(
+      _url('/posts/user/$uid/bookmarked?limit=$limit&offset=$offset'),
+      headers: await _authHeaders(),
+    );
+    return _parseList(res);
+  }
+
   static Future<int> getPostsCount(String uid, {String? type}) async {
     final q = type != null ? '?type=$type' : '';
     final res = await http.get(
@@ -125,30 +137,16 @@ class PostApiService {
   }
 
   static Future<Map<String, dynamic>> bookmarkPost(String postUid) async {
-    print('🌐 PostApiService: POST /posts/$postUid/bookmark');
     final url = _url('/posts/$postUid/bookmark');
-    print('🌐 URL: $url');
     final headers = await _authHeaders();
-    print('🌐 Headers: ${headers.keys.join(", ")}');
-    
     final res = await http.post(url, headers: headers);
-    print('🌐 Response status: ${res.statusCode}');
-    print('🌐 Response body: ${res.body}');
-    
     return _parse(res);
   }
 
   static Future<Map<String, dynamic>> unbookmarkPost(String postUid) async {
-    print('🌐 PostApiService: DELETE /posts/$postUid/bookmark');
     final url = _url('/posts/$postUid/bookmark');
-    print('🌐 URL: $url');
     final headers = await _authHeaders();
-    print('🌐 Headers: ${headers.keys.join(", ")}');
-    
     final res = await http.delete(url, headers: headers);
-    print('🌐 Response status: ${res.statusCode}');
-    print('🌐 Response body: ${res.body}');
-    
     return _parse(res);
   }
 

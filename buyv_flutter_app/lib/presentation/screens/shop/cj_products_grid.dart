@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../domain/models/cj_product_model.dart';
-import '../../../domain/models/product_model.dart';
-import '../../../domain/models/cart_model.dart';
-import '../../providers/cart_provider.dart';
 import '../profile/add_post_screen.dart';
 import 'cj_cart_helper.dart';
 

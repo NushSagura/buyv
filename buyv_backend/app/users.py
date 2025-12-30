@@ -4,7 +4,7 @@ from typing import List
 from pydantic import BaseModel
 from .database import get_db
 from . import models
-from .schemas import UserOut, UserUpdate
+from .schemas import UserOut, UserUpdate, UserStats
 from .auth import get_current_user
 import json
 
@@ -75,6 +75,38 @@ def get_user(uid: str, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user_to_out(user)
+
+@router.get("/{uid}/stats", response_model=UserStats)
+def get_user_stats(uid: str, db: Session = Depends(get_db)):
+    """Get summarized user statistics in ONE call"""
+    user = db.query(models.User).filter(models.User.uid == uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Efficiently count reels and products
+    reels_count = db.query(models.Post).filter(
+        models.Post.user_id == user.id, 
+        models.Post.type == "reel"
+    ).count()
+    
+    products_count = db.query(models.Post).filter(
+        models.Post.user_id == user.id, 
+        models.Post.type == "product"
+    ).count()
+
+    # Calculate total likes (sum of likes on all user's posts)
+    from sqlalchemy import func
+    total_likes = db.query(func.sum(models.Post.likes_count)).filter(
+        models.Post.user_id == user.id
+    ).scalar() or 0
+
+    return UserStats(
+        followers_count=user.followers_count,
+        following_count=user.following_count,
+        reels_count=reels_count,
+        products_count=products_count,
+        total_likes=total_likes
+    )
 
 @router.put("/{uid}", response_model=UserOut)
 def update_user(uid: str, payload: UserUpdate, db: Session = Depends(get_db)):

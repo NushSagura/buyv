@@ -78,7 +78,7 @@ class CommissionService {
   // Summary calculation moved client-side
 
   /// Stream user commissions for real-time updates
-  /// Note: Polls every 30 seconds to avoid excessive API calls
+  /// Note: Polls every 5 minutes to avoid excessive API calls
   Stream<List<CommissionModel>> streamUserCommissions(String userId) async* {
     // Initial load
     try {
@@ -89,9 +89,9 @@ class CommissionService {
       yield [];
     }
     
-    // Poll every 30 seconds instead of 5
+    // Poll every 5 minutes (300 seconds) to reduce server load
     while (true) {
-      await Future.delayed(const Duration(seconds: 30));
+      await Future.delayed(const Duration(seconds: 300));
       try {
         final list = await _api.listMyCommissions();
         yield list.map(_mapToCommissionModel).toList();

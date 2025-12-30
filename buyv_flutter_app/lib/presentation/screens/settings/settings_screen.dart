@@ -65,7 +65,7 @@ class SettingsScreen extends StatelessWidget {
                     context,
                     icon: Icons.credit_card_outlined,
                     title: 'Payment Methods',
-                    onTap: () => context.push('/payment'),
+                    onTap: () => context.push('/payment-methods'),
                   ),
                   const SizedBox(height: 12),
                   _buildSettingsItem(
@@ -133,18 +133,15 @@ class SettingsScreen extends StatelessWidget {
     bool isLogout = false,
     bool isDestructive = false,
   }) {
-    final Color itemColor = isDestructive 
-        ? Colors.red 
+    final Color itemColor = isDestructive
+        ? Colors.red
         : (isLogout ? Colors.red : const Color(0xFFFF6F00));
-    
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: itemColor.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        border: Border.all(color: itemColor.withValues(alpha: 0.3), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withValues(alpha: 0.1),
@@ -162,11 +159,7 @@ class SettingsScreen extends StatelessWidget {
             color: itemColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            icon,
-            color: itemColor,
-            size: 24,
-          ),
+          child: Icon(icon, color: itemColor, size: 24),
         ),
         title: Text(
           title,
@@ -193,10 +186,7 @@ class SettingsScreen extends StatelessWidget {
         return AlertDialog(
           title: const Text(
             'Delete Account',
-            style: TextStyle(
-              color: Colors.red,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
           ),
           content: const Column(
             mainAxisSize: MainAxisSize.min,
@@ -209,10 +199,7 @@ class SettingsScreen extends StatelessWidget {
               SizedBox(height: 16),
               Text(
                 'This action will:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               SizedBox(height: 8),
               Text('• Delete all your posts and reels'),
@@ -233,10 +220,7 @@ class SettingsScreen extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.blue),
-              ),
+              child: const Text('Cancel', style: TextStyle(color: Colors.blue)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -261,21 +245,19 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
+        return const Center(child: CircularProgressIndicator());
       },
     );
 
     try {
       // Import auth_api_service at top of file
       await AuthApiService.deleteAccount();
-      
+
       // Close loading dialog
       if (context.mounted) {
         Navigator.of(context).pop();
       }
-      
+
       // Show success message
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -285,7 +267,7 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       }
-      
+
       // Sign out and redirect to login
       if (context.mounted) {
         await context.read<AuthProvider>().signOut();
@@ -296,7 +278,7 @@ class SettingsScreen extends StatelessWidget {
       if (context.mounted) {
         Navigator.of(context).pop();
       }
-      
+
       // Show error message
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

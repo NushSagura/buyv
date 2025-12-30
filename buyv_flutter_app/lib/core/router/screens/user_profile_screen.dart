@@ -4,7 +4,6 @@ import '../../../domain/models/user_model.dart';
 import '../../../services/follow_api_service.dart';
 import '../../../services/post_api_service.dart';
 import '../../../data/models/post_model.dart';
-import '../../../presentation/widgets/post_card_widget.dart';
 import 'post_detail_screen.dart';
 
 /// Screen to display user profile (for deep linking)

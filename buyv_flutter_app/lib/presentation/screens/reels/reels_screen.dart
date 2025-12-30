@@ -154,19 +154,17 @@ class _ReelsScreenState extends State<ReelsScreen>
   }
 
   void _loadReelsForTab(String tab) {
-    // Simulate loading reels for different tabs
+    if (_isLoading) return;
+
     setState(() {
       _isLoading = true;
+      _currentIndex = 0;
     });
 
     // Simulate API call delay
-    Future.delayed(const Duration(seconds: 1), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-          // In real app, this would load different reels based on tab
-          _loadReels();
-        });
+        _loadReels();
       }
     });
   }
@@ -198,10 +196,10 @@ class _ReelsScreenState extends State<ReelsScreen>
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         debugPrint('📦 Response type: ${responseData.runtimeType}');
-        
+
         // Handle both formats: direct list or object with 'posts' key
         List<dynamic> postsJson;
-        
+
         if (responseData is List) {
           // Direct list format
           postsJson = responseData;
@@ -209,30 +207,36 @@ class _ReelsScreenState extends State<ReelsScreen>
         } else if (responseData is Map && responseData.containsKey('posts')) {
           // Object with 'posts' key
           postsJson = responseData['posts'] as List;
-          debugPrint('📦 Object format with posts key: ${postsJson.length} items');
+          debugPrint(
+            '📦 Object format with posts key: ${postsJson.length} items',
+          );
         } else {
-          debugPrint('❌ Unexpected response format: ${responseData.runtimeType}');
+          debugPrint(
+            '❌ Unexpected response format: ${responseData.runtimeType}',
+          );
           setState(() {
             _isLoading = false;
             _errorMessage = 'Invalid API response format';
           });
           return;
         }
-        
+
         debugPrint('📦 Found ${postsJson.length} posts in feed');
-        
+
         // Convert PostModel to ReelModel for reels/videos only
         final reels = <ReelModel>[];
-        
+
         for (var i = 0; i < postsJson.length; i++) {
           try {
             final postJson = postsJson[i];
-            debugPrint('🔍 Processing post $i: type=${postJson['type']}, videoUrl=${postJson['videoUrl']}');
-            
+            debugPrint(
+              '🔍 Processing post $i: type=${postJson['type']}, videoUrl=${postJson['videoUrl']}',
+            );
+
             final post = PostModel.fromJson(postJson);
-            
+
             // Only include reels/videos with valid URLs
-            if ((post.type == 'reel' || post.type == 'video') && 
+            if ((post.type == 'reel' || post.type == 'video') &&
                 post.videoUrl.isNotEmpty) {
               final reel = ReelModel(
                 id: post.id,
@@ -265,7 +269,9 @@ class _ReelsScreenState extends State<ReelsScreen>
           }
         }
 
-        debugPrint('✅ Loaded ${reels.length} reels from ${postsJson.length} total posts');
+        debugPrint(
+          '✅ Loaded ${reels.length} reels from ${postsJson.length} total posts',
+        );
 
         setState(() {
           _reels = reels;
@@ -348,38 +354,27 @@ class _ReelsScreenState extends State<ReelsScreen>
   }
 
   void _toggleBookmark(String reelId) async {
-    print('🔖 _toggleBookmark called for reel: $reelId');
-    
     final reelIndex = _reels.indexWhere((reel) => reel.id == reelId);
     if (reelIndex < 0) {
-      print('❌ Reel not found in list');
       return;
     }
 
     final reel = _reels[reelIndex];
     final newBookmarkState = !reel.isBookmarked;
-    
-    print('🔖 Current bookmark state: ${reel.isBookmarked}, new state: $newBookmarkState');
 
     // Optimistic update
     setState(() {
       _reels[reelIndex] = reel.copyWith(isBookmarked: newBookmarkState);
     });
-    
-    print('🔖 UI updated optimistically');
 
     // Call backend
     try {
-      print('🔖 Calling backend API...');
       final success = newBookmarkState
           ? await PostService.bookmarkPost(reelId)
           : await PostService.unbookmarkPost(reelId);
 
-      print('🔖 Backend response: $success');
-      
       if (!success) {
         // Revert on failure
-        print('❌ Backend returned false, reverting...');
         if (mounted) {
           setState(() {
             _reels[reelIndex] = reel.copyWith(isBookmarked: !newBookmarkState);
@@ -388,19 +383,16 @@ class _ReelsScreenState extends State<ReelsScreen>
             const SnackBar(content: Text('Erreur lors de la sauvegarde')),
           );
         }
-      } else {
-        print('✅ Bookmark saved successfully!');
       }
     } catch (e) {
       // Revert on error
-      print('❌ Exception during bookmark: $e');
       if (mounted) {
         setState(() {
           _reels[reelIndex] = reel.copyWith(isBookmarked: !newBookmarkState);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
       }
     }
   }
@@ -496,7 +488,7 @@ Download our app to see more amazing products!
           );
         }
       });
-      
+
       // Reload comments to ensure we have the latest from server
       Future.microtask(() {
         setState(() {
@@ -532,12 +524,16 @@ Download our app to see more amazing products!
 
   Widget _buildCommentsSheet(String reelId) {
     // Load comments when sheet opens - always reload to get latest
-    Future.microtask(() {
-      setState(() {
-        _comments.clear();
-        _commentsOffset = 0;
-      });
-      _loadComments(reelId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        if (_comments.isNotEmpty || _commentsOffset != 0) {
+          setState(() {
+            _comments.clear();
+            _commentsOffset = 0;
+          });
+        }
+        _loadComments(reelId);
+      }
     });
 
     return Container(
@@ -1041,13 +1037,17 @@ Download our app to see more amazing products!
                     final isSelected = tab == _selectedTab;
                     return GestureDetector(
                       onTap: () {
+                        if (_selectedTab == tab) return;
+
                         setState(() {
                           _selectedTab = tab;
                         });
 
                         // Handle tab navigation like Kotlin
                         if (tab == 'Explore') {
-                          context.go('/search_reels');
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) context.go('/search_reels');
+                          });
                         } else {
                           // Load reels for selected tab
                           _loadReelsForTab(tab);

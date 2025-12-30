@@ -30,7 +30,6 @@ class ReelInteractions extends StatefulWidget {
 
 class _ReelInteractionsState extends State<ReelInteractions>
     with TickerProviderStateMixin {
-  
   late AnimationController _likeAnimationController;
   late Animation<double> _likeScaleAnimation;
   late AnimationController _bookmarkAnimationController;
@@ -39,34 +38,32 @@ class _ReelInteractionsState extends State<ReelInteractions>
   @override
   void initState() {
     super.initState();
-    
+
     // Like animation
     _likeAnimationController = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    
-    _likeScaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.3,
-    ).animate(CurvedAnimation(
-      parent: _likeAnimationController,
-      curve: Curves.elasticOut,
-    ));
-    
+
+    _likeScaleAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
+      CurvedAnimation(
+        parent: _likeAnimationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
     // Bookmark animation
     _bookmarkAnimationController = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    
-    _bookmarkScaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.3,
-    ).animate(CurvedAnimation(
-      parent: _bookmarkAnimationController,
-      curve: Curves.elasticOut,
-    ));
+
+    _bookmarkScaleAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
+      CurvedAnimation(
+        parent: _bookmarkAnimationController,
+        curve: Curves.elasticOut,
+      ),
+    );
   }
 
   @override
@@ -84,13 +81,10 @@ class _ReelInteractionsState extends State<ReelInteractions>
   }
 
   void _onBookmarkTap() {
-    print('🎯 ReelInteractions: Bookmark button tapped!');
     _bookmarkAnimationController.forward().then((_) {
       _bookmarkAnimationController.reverse();
     });
-    print('🎯 Calling widget.onBookmark()...');
     widget.onBookmark();
-    print('🎯 widget.onBookmark() called');
   }
 
   String _formatCount(int count) {
@@ -115,10 +109,7 @@ class _ReelInteractionsState extends State<ReelInteractions>
             height: 48,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white,
-                width: 2,
-              ),
+              border: Border.all(color: Colors.white, width: 2),
             ),
             child: CircleAvatar(
               radius: 22,
@@ -127,18 +118,14 @@ class _ReelInteractionsState extends State<ReelInteractions>
                   : null,
               backgroundColor: Colors.grey[300],
               child: widget.reel.userProfileImage.isEmpty
-                  ? const Icon(
-                      Icons.person,
-                      size: 24,
-                      color: Colors.grey,
-                    )
+                  ? const Icon(Icons.person, size: 24, color: Colors.grey)
                   : null,
             ),
           ),
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Cart button (Add/Remove from cart)
         Column(
           children: [
@@ -156,17 +143,21 @@ class _ReelInteractionsState extends State<ReelInteractions>
                   color: Colors.black26,
                 ),
                 child: Icon(
-                  widget.isInCart ? Icons.shopping_cart_checkout : Icons.add_shopping_cart,
-                  color: widget.isInCart ? const Color(0xFFFF6F00) : Colors.white,
+                  widget.isInCart
+                      ? Icons.shopping_cart_checkout
+                      : Icons.add_shopping_cart,
+                  color: widget.isInCart
+                      ? const Color(0xFFFF6F00)
+                      : Colors.white,
                   size: 28,
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Like button
         Column(
           children: [
@@ -185,7 +176,9 @@ class _ReelInteractionsState extends State<ReelInteractions>
                         color: Colors.black26,
                       ),
                       child: Icon(
-                        widget.reel.isLiked ? Icons.favorite : Icons.favorite_border,
+                        widget.reel.isLiked
+                            ? Icons.favorite
+                            : Icons.favorite_border,
                         color: widget.reel.isLiked ? Colors.red : Colors.white,
                         size: 28,
                       ),
@@ -205,9 +198,9 @@ class _ReelInteractionsState extends State<ReelInteractions>
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Comment button
         Column(
           children: [
@@ -238,9 +231,9 @@ class _ReelInteractionsState extends State<ReelInteractions>
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Share button
         Column(
           children: [
@@ -271,9 +264,9 @@ class _ReelInteractionsState extends State<ReelInteractions>
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Bookmark button
         Column(
           children: [
@@ -292,8 +285,12 @@ class _ReelInteractionsState extends State<ReelInteractions>
                         color: Colors.black26,
                       ),
                       child: Icon(
-                        widget.reel.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                        color: widget.reel.isBookmarked ? Colors.yellow : Colors.white,
+                        widget.reel.isBookmarked
+                            ? Icons.bookmark
+                            : Icons.bookmark_border,
+                        color: widget.reel.isBookmarked
+                            ? Colors.yellow
+                            : Colors.white,
                         size: 28,
                       ),
                     ),
@@ -303,9 +300,9 @@ class _ReelInteractionsState extends State<ReelInteractions>
             ),
           ],
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // More options button
         GestureDetector(
           onTap: () {
@@ -318,11 +315,7 @@ class _ReelInteractionsState extends State<ReelInteractions>
               shape: BoxShape.circle,
               color: Colors.black26,
             ),
-            child: const Icon(
-              Icons.more_vert,
-              color: Colors.white,
-              size: 28,
-            ),
+            child: const Icon(Icons.more_vert, color: Colors.white, size: 28),
           ),
         ),
       ],
@@ -351,7 +344,7 @@ class _ReelInteractionsState extends State<ReelInteractions>
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             // Options
             _buildOptionItem(
               icon: Icons.report_outlined,
@@ -361,7 +354,7 @@ class _ReelInteractionsState extends State<ReelInteractions>
                 // TODO: Report content
               },
             ),
-            
+
             _buildOptionItem(
               icon: Icons.block_outlined,
               title: 'Block User',
@@ -370,7 +363,7 @@ class _ReelInteractionsState extends State<ReelInteractions>
                 _blockUser();
               },
             ),
-            
+
             _buildOptionItem(
               icon: Icons.copy_outlined,
               title: 'Copy Link',
@@ -379,7 +372,7 @@ class _ReelInteractionsState extends State<ReelInteractions>
                 _copyVideoLink();
               },
             ),
-            
+
             _buildOptionItem(
               icon: Icons.download_outlined,
               title: 'Save Video',
@@ -388,7 +381,7 @@ class _ReelInteractionsState extends State<ReelInteractions>
                 _saveVideo();
               },
             ),
-            
+
             _buildOptionItem(
               icon: Icons.not_interested_outlined,
               title: 'Not Interested',
@@ -397,7 +390,7 @@ class _ReelInteractionsState extends State<ReelInteractions>
                 _markNotInterested();
               },
             ),
-            
+
             const SizedBox(height: 20),
           ],
         ),
@@ -417,7 +410,9 @@ class _ReelInteractionsState extends State<ReelInteractions>
 
   void _copyVideoLink() {
     // Simulate copying video link to clipboard
-    Clipboard.setData(const ClipboardData(text: 'https://example.com/video/123'));
+    Clipboard.setData(
+      const ClipboardData(text: 'https://example.com/video/123'),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Video link copied to clipboard'),
@@ -440,7 +435,9 @@ class _ReelInteractionsState extends State<ReelInteractions>
     // Simulate marking video as not interested
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Marked as not interested. We\'ll show you fewer videos like this.'),
+        content: Text(
+          'Marked as not interested. We\'ll show you fewer videos like this.',
+        ),
         backgroundColor: Colors.orange,
       ),
     );
@@ -452,16 +449,10 @@ class _ReelInteractionsState extends State<ReelInteractions>
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: Colors.grey[700],
-      ),
+      leading: Icon(icon, color: Colors.grey[700]),
       title: Text(
         title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       ),
       onTap: onTap,
     );

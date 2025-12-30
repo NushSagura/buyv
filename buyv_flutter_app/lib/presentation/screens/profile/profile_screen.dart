@@ -2,7 +2,6 @@ import '../../../data/models/post_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../services/auth_api_service.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../providers/auth_provider.dart' as auth_provider;
 import '../../widgets/require_login_prompt.dart';
@@ -70,11 +69,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadProfileData() async {
-    String? currentUserId;
-    try {
-      final me = await AuthApiService.me();
-      currentUserId = me['id'] as String?;
-    } catch (_) {}
+    final authProvider = Provider.of<auth_provider.AuthProvider>(
+      context,
+      listen: false,
+    );
+    final String? currentUserId = authProvider.currentUser?.id;
+
     if (currentUserId == null) return;
 
     setState(() {
@@ -83,22 +83,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      // Load statistics
-      final futures = [
-        _userService.getFollowersCount(currentUserId),
-        _userService.getFollowingCount(currentUserId),
-        _userService.getUserReelsCount(currentUserId),
-        _userService.getUserProductsCount(currentUserId),
-      ];
-      final results = await Future.wait(futures);
+      // Load ALL statistics in ONE call
+      final stats = await _userService.getUserStatistics(currentUserId);
 
-      _followersCount = results[0];
-      _followingCount = results[1];
-      _reelsCount = results[2];
-      _productsCount = results[3];
-
-      // Calculate likes count (sum of likes on all user's posts)
-      _likesCount = await _calculateTotalLikes(currentUserId);
+      _followersCount = stats['followers'] ?? 0;
+      _followingCount = stats['following'] ?? 0;
+      _reelsCount = stats['reels'] ?? 0;
+      _productsCount = stats['products'] ?? 0;
+      _likesCount = stats['likes'] ?? 0;
 
       setState(() {
         _isLoadingStats = false;
@@ -115,26 +107,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<int> _calculateTotalLikes(String userId) async {
-    try {
-      final allPosts = await _postService.getUserPosts(userId, limit: 100);
-      int totalLikes = 0;
-      for (final post in allPosts) {
-        totalLikes += post.likesCount;
-      }
-      return totalLikes;
-    } catch (e) {
-      debugPrint('Error calculating total likes: $e');
-      return 0;
-    }
-  }
-
   Future<void> _loadTabContent() async {
-    String? currentUserId;
-    try {
-      final me = await AuthApiService.me();
-      currentUserId = me['id'] as String?;
-    } catch (_) {}
+    final authProvider = Provider.of<auth_provider.AuthProvider>(
+      context,
+      listen: false,
+    );
+    final String? currentUserId = authProvider.currentUser?.id;
     if (currentUserId == null) return;
 
     setState(() {
@@ -149,8 +127,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         case 1: // Products
           _userProducts = await _postService.getUserProducts(currentUserId);
           break;
-        case 2: // Saved (placeholder)
-          _userSavedPosts = [];
+        case 2: // Saved
+          _userSavedPosts = await _postService.getUserBookmarkedPosts(
+            currentUserId,
+          );
           break;
         case 3: // Liked
           _userLikedPosts = await _postService.getUserLikedPosts(currentUserId);
@@ -256,213 +236,215 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Column(
                               children: [
                                 // Stats Row
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16.0,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
-                                      children: [
-                                        _buildProfileStat(
-                                          _followingCount.toString(),
-                                          'Following',
-                                          () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    FollowListScreen(
-                                                      userId: user.id,
-                                                      username: user.username,
-                                                      initialTabIndex: 1,
-                                                    ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      _buildProfileStat(
+                                        _followingCount.toString(),
+                                        'Following',
+                                        () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => FollowListScreen(
+                                                userId: user.id,
+                                                username: user.username,
+                                                initialTabIndex: 1,
                                               ),
-                                            );
-                                          },
-                                        ),
-                                        // Avatar
-                                        CircleAvatar(
-                                          radius: 50,
-                                          backgroundImage:
-                                              user.profileImageUrl != null &&
-                                                  user
-                                                      .profileImageUrl!
-                                                      .isNotEmpty
-                                              ? NetworkImage(
-                                                  user.profileImageUrl!,
-                                                )
-                                              : null,
-                                          backgroundColor: Colors.grey[200],
-                                          child:
-                                              user.profileImageUrl == null ||
-                                                  user.profileImageUrl!.isEmpty
-                                              ? const Icon(
-                                                  Icons.person,
-                                                  size: 50,
-                                                  color: Color(0xFFFF6F00),
-                                                )
-                                              : null,
-                                        ),
-                                        _buildProfileStat(
-                                          _followersCount.toString(),
-                                          'Followers',
-                                          () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    FollowListScreen(
-                                                      userId: user.id,
-                                                      username: user.username,
-                                                      initialTabIndex: 0,
-                                                    ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  // Name
-                                  Text(
-                                    user.displayName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                      color: Color(0xFF0D3D67),
-                                    ),
-                                  ),
-                                  Text(
-                                    '@${user.username}',
-                                    style: const TextStyle(color: Colors.grey),
-                                  ),
-                                  if (user.bio != null &&
-                                      user.bio!.isNotEmpty) ...[
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      user.bio!,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: Color(0xFF333333),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                    ),
-                                  ],
-                                  const SizedBox(height: 16),
-                                  // Actions
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 32.0,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: ElevatedButton(
-                                                onPressed: () {
-                                                  _shareProfile(context, user);
-                                                },
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(
-                                                    0xFFF2F2F2,
-                                                  ),
-                                                  foregroundColor: Colors.black,
-                                                  elevation: 0,
-                                                ),
-                                                child: const Text('Share Profile'),
+                                      // Avatar
+                                      CircleAvatar(
+                                        radius: 50,
+                                        backgroundImage:
+                                            user.profileImageUrl != null &&
+                                                user.profileImageUrl!.isNotEmpty
+                                            ? NetworkImage(
+                                                user.profileImageUrl!,
+                                              )
+                                            : null,
+                                        backgroundColor: Colors.grey[200],
+                                        child:
+                                            user.profileImageUrl == null ||
+                                                user.profileImageUrl!.isEmpty
+                                            ? const Icon(
+                                                Icons.person,
+                                                size: 50,
+                                                color: Color(0xFFFF6F00),
+                                              )
+                                            : null,
+                                      ),
+                                      _buildProfileStat(
+                                        _followersCount.toString(),
+                                        'Followers',
+                                        () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => FollowListScreen(
+                                                userId: user.id,
+                                                username: user.username,
+                                                initialTabIndex: 0,
                                               ),
                                             ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: ElevatedButton(
-                                                onPressed: () {
-                                                  // Edit Profile nav
-                                                  context.push('/edit-profile');
-                                                },
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(
-                                                    0xFFFF6F00,
-                                                  ),
-                                                  foregroundColor: Colors.white,
-                                                  elevation: 0,
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Name
+                                Text(
+                                  user.displayName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    color: Color(0xFF0D3D67),
+                                  ),
+                                ),
+                                Text(
+                                  '@${user.username}',
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                                if (user.bio != null &&
+                                    user.bio!.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    user.bio!,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Color(0xFF333333),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 16),
+                                // Actions
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 32.0,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                _shareProfile(context, user);
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(
+                                                  0xFFF2F2F2,
                                                 ),
-                                                child: const Text('Edit Profile'),
+                                                foregroundColor: Colors.black,
+                                                elevation: 0,
+                                              ),
+                                              child: const Text(
+                                                'Share Profile',
                                               ),
                                             ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 12),
-                                        SizedBox(
-                                          width: double.infinity,
-                                          child: ElevatedButton.icon(
-                                            onPressed: () {
-                                              context.push('/orders-history');
-                                            },
-                                            icon: const Icon(Icons.shopping_bag),
-                                            label: const Text('My Orders'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF0D3D67),
-                                              foregroundColor: Colors.white,
-                                              elevation: 0,
-                                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                // Edit Profile nav
+                                                context.push('/edit-profile');
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(
+                                                  0xFFFF6F00,
+                                                ),
+                                                foregroundColor: Colors.white,
+                                                elevation: 0,
+                                              ),
+                                              child: const Text('Edit Profile'),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed: () {
+                                            context.push('/orders-history');
+                                          },
+                                          icon: const Icon(Icons.shopping_bag),
+                                          label: const Text('My Orders'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFF0D3D67,
+                                            ),
+                                            foregroundColor: Colors.white,
+                                            elevation: 0,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 12,
                                             ),
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 24),
-                                  // Tabs
-                                  Container(
-                                    decoration: const BoxDecoration(
-                                      border: Border(
-                                        bottom: BorderSide(
-                                          color: Color(0xFFEEEEEE),
-                                        ),
+                                ),
+                                const SizedBox(height: 24),
+                                // Tabs
+                                Container(
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: Color(0xFFEEEEEE),
                                       ),
                                     ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      children: [
-                                        _buildTabIconWithCount(
-                                          0,
-                                          Icons.video_library,
-                                          Icons.video_library_outlined,
-                                          _reelsCount,
-                                        ),
-                                        _buildTabIconWithCount(
-                                          1,
-                                          Icons.shopping_bag,
-                                          Icons.shopping_bag_outlined,
-                                          _productsCount,
-                                        ),
-                                        _buildTabIconWithCount(
-                                          2,
-                                          Icons.bookmark,
-                                          Icons.bookmark_border,
-                                          null,
-                                        ), // Saved
-                                        _buildTabIconWithCount(
-                                          3,
-                                          Icons.favorite,
-                                          Icons.favorite_border,
-                                          _userLikedPosts.isNotEmpty
-                                              ? _userLikedPosts.length
-                                              : null,
-                                        ), // Liked
-                                      ],
-                                    ),
                                   ),
-                                  const SizedBox(height: 16),
-                                ],
-                              ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    children: [
+                                      _buildTabIconWithCount(
+                                        0,
+                                        Icons.video_library,
+                                        Icons.video_library_outlined,
+                                        _reelsCount,
+                                      ),
+                                      _buildTabIconWithCount(
+                                        1,
+                                        Icons.shopping_bag,
+                                        Icons.shopping_bag_outlined,
+                                        _productsCount,
+                                      ),
+                                      _buildTabIconWithCount(
+                                        2,
+                                        Icons.bookmark,
+                                        Icons.bookmark_border,
+                                        null,
+                                      ), // Saved
+                                      _buildTabIconWithCount(
+                                        3,
+                                        Icons.favorite,
+                                        Icons.favorite_border,
+                                        _userLikedPosts.isNotEmpty
+                                            ? _userLikedPosts.length
+                                            : null,
+                                      ), // Liked
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
                             ),
                           ),
                         ),
-                      
+                      ),
+
                       SliverToBoxAdapter(
                         child: SizedBox(
                           height: 650,
@@ -594,19 +576,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
-        debugPrint('📹 Profile Grid: Rendering item ${item.id}');
-        debugPrint('📹 Video URL: ${item.videoUrl}');
-        debugPrint('📹 Thumbnail URL: ${item.thumbnailUrl}');
-        
+        // debugPrint('📹 Profile Grid: Rendering item ${item.id}');
+
         return GestureDetector(
           onTap: () {
-            debugPrint('🎯 Profile Grid: Item tapped - ${item.id}');
             // Navigate to video player or reels screen with this post
             if (item.type == 'reel' || item.type == 'video') {
-              debugPrint('🎯 Navigating to reels screen with post ${item.id}');
               context.push('/reels', extra: {'startPostId': item.id});
             } else {
-              debugPrint('🎯 Opening post detail for ${item.id}');
               // Could navigate to full post detail screen
             }
           },

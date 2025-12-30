@@ -12,7 +12,7 @@ router = APIRouter(prefix="/posts", tags=["posts"])
 
 
 
-def _map_post_out(row: Post, user: User, liked: bool = False) -> PostOut:
+def _map_post_out(row: Post, user: User, liked: bool = False, bookmarked: bool = False) -> PostOut:
     # PostOut uses alias 'id' for validation but we pass kwargs. 
     # db row 'uid' -> id.
     # db row 'media_url' -> video_url (aliased to videoUrl).
@@ -35,6 +35,7 @@ def _map_post_out(row: Post, user: User, liked: bool = False) -> PostOut:
         created_at=row.created_at,
         updated_at=row.updated_at,
         is_liked=liked,
+        is_bookmarked=bookmarked,
     )
 
 @router.post("/", response_model=PostOut)
@@ -87,17 +88,21 @@ def get_feed(
     users = db.query(User).filter(User.id.in_(user_ids)).all()
     user_map = {u.id: u for u in users}
 
-    # Fetch my likes
+    # Fetch my likes and bookmarks
     post_ids = [r.id for r in rows]
     my_likes = db.query(PostLike).filter(PostLike.user_id == current_user.id, PostLike.post_id.in_(post_ids)).all()
     liked_post_ids = {l.post_id for l in my_likes}
+
+    my_bookmarks = db.query(PostBookmark).filter(PostBookmark.user_id == current_user.id, PostBookmark.post_id.in_(post_ids)).all()
+    bookmarked_post_ids = {b.post_id for b in my_bookmarks}
 
     out = []
     for r in rows:
         author = user_map.get(r.user_id)
         if author:
             is_liked = r.id in liked_post_ids
-            out.append(_map_post_out(r, author, liked=is_liked))
+            is_bookmarked = r.id in bookmarked_post_ids
+            out.append(_map_post_out(r, author, liked=is_liked, bookmarked=is_bookmarked))
     
     return out
 
@@ -207,6 +212,64 @@ def count_user_posts(
         q = q.filter(Post.type == type)
     cnt = q.count()
     return CountResponse(count=cnt)
+
+
+@router.get("/user/{uid}/bookmarked", response_model=List[PostOut])
+def list_user_bookmarked_posts(
+    uid: str,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    user = db.query(User).filter(User.uid == uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if we are viewing our own bookmarks
+    if user.id != current_user.id:
+        # In many apps, bookmarks are private. Let's enforce that.
+        raise HTTPException(status_code=403, detail="Not allowed to view other users' bookmarks")
+
+    bookmark_rows = (
+        db.query(PostBookmark)
+        .filter(PostBookmark.user_id == user.id)
+        .order_by(PostBookmark.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    post_ids = [r.post_id for r in bookmark_rows]
+    if not post_ids:
+        return []
+    
+    posts = db.query(Post).filter(Post.id.in_(post_ids)).all()
+    post_map = {p.id: p for p in posts}
+    
+    # Fetch authors
+    author_ids = list({p.user_id for p in posts})
+    authors = db.query(User).filter(User.id.in_(author_ids)).all()
+    author_map = {a.id: a for a in authors}
+
+    # Fetch likes status for these posts for the current user
+    my_likes = db.query(PostLike).filter(
+        PostLike.user_id == current_user.id, 
+        PostLike.post_id.in_(post_ids)
+    ).all()
+    liked_post_ids = {l.post_id for l in my_likes}
+
+    out: List[PostOut] = []
+    for br in bookmark_rows:
+        p = post_map.get(br.post_id)
+        if p is None:
+            continue
+        author = author_map.get(p.user_id)
+        if author:
+            is_liked = p.id in liked_post_ids
+            # Note: is_bookmarked is implicitly true since we are in the bookmarked list
+            item = _map_post_out(p, author, liked=is_liked, bookmarked=True)
+            out.append(item)
+    return out
 
 
 @router.get("/search", response_model=List[PostOut])
@@ -321,26 +384,21 @@ def bookmark_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    print(f"🔖 Backend: bookmark_post called for post_uid={post_uid}, user={current_user.username}")
     post = db.query(Post).filter(Post.uid == post_uid).first()
     if not post:
-        print(f"❌ Post {post_uid} not found")
         raise HTTPException(status_code=404, detail="Post not found")
     
-    print(f"📌 Post found: id={post.id}")
     existing = db.query(PostBookmark).filter(
         PostBookmark.post_id == post.id,
         PostBookmark.user_id == current_user.id
     ).first()
     
     if existing:
-        print(f"ℹ️ Already bookmarked")
         return {"status": "already_bookmarked"}
     
     bookmark = PostBookmark(post_id=post.id, user_id=current_user.id)
     db.add(bookmark)
     db.commit()
-    print(f"✅ Bookmark created successfully")
     return {"status": "bookmarked"}
 
 
@@ -350,25 +408,20 @@ def unbookmark_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    print(f"🔖 Backend: unbookmark_post called for post_uid={post_uid}, user={current_user.username}")
     post = db.query(Post).filter(Post.uid == post_uid).first()
     if not post:
-        print(f"❌ Post {post_uid} not found")
         raise HTTPException(status_code=404, detail="Post not found")
     
-    print(f"📌 Post found: id={post.id}")
     existing = db.query(PostBookmark).filter(
         PostBookmark.post_id == post.id,
         PostBookmark.user_id == current_user.id
     ).first()
     
     if not existing:
-        print(f"ℹ️ Not bookmarked")
         return {"status": "not_bookmarked"}
     
     db.delete(existing)
     db.commit()
-    print(f"✅ Bookmark removed successfully")
     return {"status": "unbookmarked"}
 
 

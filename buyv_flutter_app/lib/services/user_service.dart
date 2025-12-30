@@ -100,23 +100,24 @@ class UserService {
   // Get user statistics (posts, followers, following)
   Future<Map<String, int>> getUserStatistics(String userId) async {
     try {
-      final results = await Future.wait([
-        getUserPostsCount(userId),
-        getFollowersCount(userId),
-        getFollowingCount(userId),
-      ]);
-
+      final res = await AuthApiService.getUserStats(userId);
       return {
-        'posts': results[0],
-        'followers': results[1],
-        'following': results[2],
+        'posts': (res['reelsCount'] ?? 0) + (res['productsCount'] ?? 0),
+        'reels': res['reelsCount'] ?? 0,
+        'products': res['productsCount'] ?? 0,
+        'followers': res['followersCount'] ?? 0,
+        'following': res['followingCount'] ?? 0,
+        'likes': res['totalLikes'] ?? 0,
       };
     } catch (e) {
       debugPrint('Error getting user statistics: $e');
       return {
         'posts': 0,
+        'reels': 0,
+        'products': 0,
         'followers': 0,
         'following': 0,
+        'likes': 0,
       };
     }
   }
@@ -175,7 +176,9 @@ class UserService {
   Future<List<Map<String, dynamic>>> getUserPosts(String userId) async {
     try {
       // TODO: Implement FastAPI posts endpoint
-      debugPrint('getUserPosts not implemented on backend yet for user $userId');
+      debugPrint(
+        'getUserPosts not implemented on backend yet for user $userId',
+      );
       return [];
     } catch (e) {
       debugPrint('Error getting user posts: $e');
@@ -187,7 +190,9 @@ class UserService {
   Future<List<Map<String, dynamic>>> getUserProducts(String userId) async {
     try {
       // TODO: Implement FastAPI products endpoint
-      debugPrint('getUserProducts not implemented on backend yet for user $userId');
+      debugPrint(
+        'getUserProducts not implemented on backend yet for user $userId',
+      );
       return [];
     } catch (e) {
       debugPrint('Error getting user products: $e');

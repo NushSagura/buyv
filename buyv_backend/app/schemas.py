@@ -64,6 +64,13 @@ class UserUpdate(CamelModel):
     interests: Optional[List[str]] = None
     settings: Optional[dict] = None
 
+class UserStats(CamelModel):
+    followers_count: int
+    following_count: int
+    reels_count: int
+    products_count: int
+    total_likes: int
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str

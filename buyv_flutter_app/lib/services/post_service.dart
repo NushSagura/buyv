@@ -192,6 +192,25 @@ class PostService {
     }
   }
 
+  // Get user's bookmarked posts
+  Future<List<PostModel>> getUserBookmarkedPosts(
+    String userId, {
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final maps = await PostApiService.getUserBookmarkedPosts(
+        userId,
+        limit: limit,
+        offset: offset,
+      );
+      return maps.map((e) => PostModel.fromJson(e)).toList();
+    } catch (e) {
+      debugPrint('getUserBookmarkedPosts error: $e');
+      return [];
+    }
+  }
+
   // Delete a post
   Future<bool> deletePost(String postId) async {
     try {
@@ -205,11 +224,10 @@ class PostService {
   // Bookmark a post
   static Future<bool> bookmarkPost(String postId) async {
     try {
-      debugPrint('📌 PostService.bookmarkPost called for: $postId');
       final result = await PostApiService.bookmarkPost(postId);
-      debugPrint('📌 PostApiService returned: $result');
-      final success = result['status'] == 'bookmarked' || result['status'] == 'already_bookmarked';
-      debugPrint('📌 Returning success: $success');
+      final success =
+          result['status'] == 'bookmarked' ||
+          result['status'] == 'already_bookmarked';
       return success;
     } catch (e) {
       debugPrint('❌ bookmarkPost error: $e');
@@ -220,11 +238,10 @@ class PostService {
   // Unbookmark a post
   static Future<bool> unbookmarkPost(String postId) async {
     try {
-      debugPrint('📌 PostService.unbookmarkPost called for: $postId');
       final result = await PostApiService.unbookmarkPost(postId);
-      debugPrint('📌 PostApiService returned: $result');
-      final success = result['status'] == 'unbookmarked' || result['status'] == 'not_bookmarked';
-      debugPrint('📌 Returning success: $success');
+      final success =
+          result['status'] == 'unbookmarked' ||
+          result['status'] == 'not_bookmarked';
       return success;
     } catch (e) {
       debugPrint('❌ unbookmarkPost error: $e');

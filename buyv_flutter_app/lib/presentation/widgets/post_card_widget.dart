@@ -56,26 +56,19 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   }
 
   Future<void> _toggleBookmark() async {
-    print('🔖 PostCardWidget: _toggleBookmark called for post ${widget.post.id}');
     final previousState = _isBookmarked;
-    
-    // Optimistic update
+
     setState(() {
       _isBookmarked = !_isBookmarked;
     });
-    print('🔖 UI updated: isBookmarked = $_isBookmarked');
 
     try {
-      print('🔖 Calling API...');
       final success = previousState
           ? await PostService.unbookmarkPost(widget.post.id)
           : await PostService.bookmarkPost(widget.post.id);
-      
-      print('🔖 API returned: $success');
-      
+
       if (!success) {
         // Revert on failure
-        print('❌ API failed, reverting...');
         if (mounted) {
           setState(() {
             _isBookmarked = previousState;
@@ -85,7 +78,6 @@ class _PostCardWidgetState extends State<PostCardWidget> {
           );
         }
       } else {
-        print('✅ Bookmark saved successfully!');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -98,15 +90,14 @@ class _PostCardWidgetState extends State<PostCardWidget> {
         }
       }
     } catch (e) {
-      print('❌ Exception: $e');
       // Revert on error
       if (mounted) {
         setState(() {
           _isBookmarked = previousState;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
       }
     }
   }
@@ -188,9 +179,6 @@ class _PostCardWidgetState extends State<PostCardWidget> {
               if (widget.post.videoUrl.isNotEmpty)
                 Builder(
                   builder: (context) {
-                    debugPrint('🎬 PostCard: Rendering video for post ${widget.post.id}');
-                    debugPrint('🎬 Video URL: ${widget.post.videoUrl}');
-                    debugPrint('🎬 Post type: ${widget.post.type}');
                     return AspectRatio(
                       aspectRatio:
                           9 /
@@ -209,7 +197,6 @@ class _PostCardWidgetState extends State<PostCardWidget> {
               else
                 Builder(
                   builder: (context) {
-                    debugPrint('⚠️ PostCard: Video URL is empty for post ${widget.post.id}');
                     return Container(
                       color: Colors.black,
                       height: 400,
@@ -217,7 +204,11 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.videocam_off, color: Colors.white54, size: 48),
+                            Icon(
+                              Icons.videocam_off,
+                              color: Colors.white54,
+                              size: 48,
+                            ),
                             SizedBox(height: 8),
                             Text(
                               'No video available',
@@ -279,16 +270,15 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                   IconButton(
                     icon: const Icon(Icons.share_outlined),
                     onPressed: () {
-                      final shareText = '${widget.post.username} shared a post${widget.post.caption != null ? ': ${widget.post.caption}' : ''}';
+                      final shareText =
+                          '${widget.post.username} shared a post${widget.post.caption != null ? ': ${widget.post.caption}' : ''}';
                       Share.share(shareText);
                     },
                   ),
                   const Spacer(),
                   IconButton(
                     icon: Icon(
-                      _isBookmarked
-                          ? Icons.bookmark
-                          : Icons.bookmark_border,
+                      _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                       color: _isBookmarked ? Colors.yellow[700] : null,
                     ),
                     onPressed: _toggleBookmark,
