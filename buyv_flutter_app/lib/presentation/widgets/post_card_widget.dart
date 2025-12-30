@@ -187,7 +187,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                         color: Colors.black,
                         child: VideoPlayerWidget(
                           videoUrl: widget.post.videoUrl,
-                          autoPlay: true,
+                          autoPlay: false, // ✅ Désactivé pour éviter auto-play au retour
                           looping: true,
                         ),
                       ),

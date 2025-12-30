@@ -29,6 +29,7 @@ import '../../presentation/screens/orders/orders_track_screen.dart';
 import '../../presentation/screens/orders/orders_history_screen.dart';
 import '../../presentation/screens/help/help_screen.dart';
 import '../../presentation/screens/settings/diagnostic_logs_screen.dart';
+import '../../presentation/screens/debug/user_activity_log_screen.dart';
 import '../../presentation/screens/splash/splash_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 import './route_names.dart';
@@ -295,6 +296,11 @@ class AppRouter {
           path: '/diagnostic-logs',
           name: 'diagnostic-logs',
           builder: (context, state) => const DiagnosticLogsScreen(),
+        ),
+        GoRoute(
+          path: '/activity-logs',
+          name: 'activity-logs',
+          builder: (context, state) => const UserActivityLogScreen(),
         ),
         GoRoute(
           path: RouteNames.recentlyViewed,

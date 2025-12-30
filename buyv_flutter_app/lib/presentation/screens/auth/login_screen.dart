@@ -6,6 +6,7 @@ import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/social_login_button.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/remote_logger.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -261,6 +262,11 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted && success) {
+        // Log connexion réussie
+        RemoteLogger.logUserAction(
+          'Login successful',
+          context: {'email': _emailController.text, 'method': 'email'},
+        );
         context.go('/home');
       } else if (mounted) {
         _showErrorSnackBar(authProvider.errorMessage ?? 'Failed to sign in');

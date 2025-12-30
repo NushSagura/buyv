@@ -19,6 +19,7 @@ import '../../../services/post_service.dart';
 import '../../widgets/require_login_prompt.dart';
 import '../shop/shop_screen.dart';
 import '../../../services/api/comment_api_service.dart';
+import '../../../data/providers/user_provider.dart';
 
 class ReelsScreen extends StatefulWidget {
   final String? targetReelId;
@@ -97,8 +98,9 @@ class _ReelsScreenState extends State<ReelsScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    // Stop all videos immediately before disposing
-    _pauseAllVideos();
+    // ✅ FIX: Ne PAS appeler setState dans dispose (widget defunct)
+    // Nettoyer directement sans setState
+    _videoPlayStates.clear();
     _pageController.dispose();
     _heartAnimationController.dispose();
     _commentController.dispose();
@@ -110,7 +112,9 @@ class _ReelsScreenState extends State<ReelsScreen>
     // Called when the widget is removed from the tree (e.g., navigating away)
     // Immediately stop all videos to prevent audio continuing
     debugPrint('🛑 ReelsScreen: Deactivating - stopping all videos');
-    _pauseAllVideos();
+    // ✅ FIX: Ne PAS appeler setState dans deactivate (cause setState during build)
+    // Juste nettoyer les états directement sans setState
+    _videoPlayStates.clear();
     super.deactivate();
   }
 
@@ -121,7 +125,12 @@ class _ReelsScreenState extends State<ReelsScreen>
     switch (state) {
       case AppLifecycleState.paused:
         _wasAppInBackground = true;
-        _pauseAllVideos();
+        // Pause all videos when app goes to background
+        if (mounted) {
+          setState(() {
+            _videoPlayStates.clear();
+          });
+        }
         break;
       case AppLifecycleState.resumed:
         if (_wasAppInBackground) {
@@ -131,18 +140,11 @@ class _ReelsScreenState extends State<ReelsScreen>
         }
         break;
       case AppLifecycleState.detached:
-        _pauseAllVideos();
+        // App being detached, clear video states (no setState needed)
+        _videoPlayStates.clear();
         break;
       default:
         break;
-    }
-  }
-
-  void _pauseAllVideos() {
-    if (mounted) {
-      setState(() {
-        _videoPlayStates.clear();
-      });
     }
   }
 
@@ -191,58 +193,112 @@ class _ReelsScreenState extends State<ReelsScreen>
         return;
       }
 
-      // Fetch reels/videos from posts API
+      // 🚀 OPTIMISATION CRITIQUE: Si targetReelId fourni, charge le reel ciblé IMMÉDIATEMENT
+      if (widget.targetReelId != null) {
+        debugPrint('⚡ FAST MODE: Loading target reel ${widget.targetReelId} FIRST');
+        await _loadTargetReelFirst(widget.targetReelId!, token);
+        // Puis charge le reste du feed en arrière-plan
+        _loadFeedReelsInBackground(token);
+        return;
+      }
+
+      // Mode normal: charge le feed complet
+      await _loadFeedReels(token);
+    } catch (e) {
+      debugPrint('❌ Error loading reels: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString();
+      });
+    }
+  }
+
+  // 🚀 Charge le reel ciblé EN PREMIER pour affichage instantané
+  Future<void> _loadTargetReelFirst(String targetReelId, String token) async {
+    debugPrint('⚡ Loading target reel: $targetReelId');
+    
+    try {
       final response = await http.get(
-        Uri.parse('${AppConstants.fastApiBaseUrl}/posts/feed?limit=50'),
+        Uri.parse('${AppConstants.fastApiBaseUrl}/posts/$targetReelId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final postJson = json.decode(response.body);
+        final post = PostModel.fromJson(postJson);
+
+        // Vérifie que c'est bien un reel/video
+        if ((post.type == 'reel' || post.type == 'video') && post.videoUrl.isNotEmpty) {
+          final reel = ReelModel(
+            id: post.id,
+            userId: post.userId,
+            username: post.username,
+            userProfileImage: post.userProfileImage ?? '',
+            isUserVerified: post.isUserVerified,
+            videoUrl: post.videoUrl,
+            thumbnailUrl: post.thumbnailUrl,
+            caption: post.caption ?? '',
+            hashtags: [],
+            likesCount: post.likesCount,
+            commentsCount: post.commentsCount,
+            sharesCount: post.sharesCount,
+            viewsCount: post.viewsCount,
+            isLiked: post.isLiked,
+            isBookmarked: post.isBookmarked,
+            createdAt: post.createdAt,
+            updatedAt: post.updatedAt,
+            duration: 0.0,
+          );
+
+          debugPrint('✅ Target reel loaded instantly: ${reel.id}');
+          
+          if (!mounted) return;
+          
+          setState(() {
+            _reels = [reel]; // Affiche JUSTE ce reel immédiatement
+            _currentIndex = 0;
+            _isLoading = false;
+            // ✅ Auto-play le reel DANS setState pour éviter race condition
+            _videoPlayStates[reel.id] = true;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error loading target reel: $e');
+      // Fallback: charge le feed normal
+      await _loadFeedReels(token);
+    }
+  }
+
+  // 📦 Charge le feed complet de reels
+  Future<void> _loadFeedReels(String token) async {
+    debugPrint('📦 Loading full feed (20 reels)');
+    
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConstants.fastApiBaseUrl}/posts/feed?limit=20'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        debugPrint('📦 Response type: ${responseData.runtimeType}');
-
-        // Handle both formats: direct list or object with 'posts' key
+        
         List<dynamic> postsJson;
-
         if (responseData is List) {
-          // Direct list format
           postsJson = responseData;
-          debugPrint('📦 Direct list format: ${postsJson.length} items');
         } else if (responseData is Map && responseData.containsKey('posts')) {
-          // Object with 'posts' key
           postsJson = responseData['posts'] as List;
-          debugPrint(
-            '📦 Object format with posts key: ${postsJson.length} items',
-          );
         } else {
-          debugPrint(
-            '❌ Unexpected response format: ${responseData.runtimeType}',
-          );
-          setState(() {
-            _isLoading = false;
-            _errorMessage = 'Invalid API response format';
-          });
-          return;
+          throw Exception('Invalid API response format');
         }
 
-        debugPrint('📦 Found ${postsJson.length} posts in feed');
-
-        // Convert PostModel to ReelModel for reels/videos only
         final reels = <ReelModel>[];
-
         for (var i = 0; i < postsJson.length; i++) {
           try {
-            final postJson = postsJson[i];
-            debugPrint(
-              '🔍 Processing post $i: type=${postJson['type']}, videoUrl=${postJson['videoUrl']}',
-            );
-
-            final post = PostModel.fromJson(postJson);
-
-            // Only include reels/videos with valid URLs
-            if ((post.type == 'reel' || post.type == 'video') &&
-                post.videoUrl.isNotEmpty) {
-              final reel = ReelModel(
+            final post = PostModel.fromJson(postsJson[i]);
+            if ((post.type == 'reel' || post.type == 'video') && post.videoUrl.isNotEmpty) {
+              reels.add(ReelModel(
                 id: post.id,
                 userId: post.userId,
                 username: post.username,
@@ -261,22 +317,16 @@ class _ReelsScreenState extends State<ReelsScreen>
                 createdAt: post.createdAt,
                 updatedAt: post.updatedAt,
                 duration: 0.0,
-              );
-              reels.add(reel);
-              debugPrint('✅ Added reel: ${reel.id}');
+              ));
             }
-          } catch (e, stackTrace) {
-            debugPrint('⚠️ Error converting post $i to reel: $e');
-            debugPrint('Stack trace: $stackTrace');
-            // Skip problematic posts
+          } catch (e) {
+            debugPrint('⚠️ Skipping invalid post: $e');
             continue;
           }
         }
 
-        debugPrint(
-          '✅ Loaded ${reels.length} reels from ${postsJson.length} total posts',
-        );
-
+        debugPrint('✅ Loaded ${reels.length} reels from feed');
+        
         if (!mounted) return;
         
         setState(() {
@@ -284,39 +334,121 @@ class _ReelsScreenState extends State<ReelsScreen>
           _isLoading = false;
         });
 
-        // Navigate to target reel if specified (APRÈS setState)
+        // Si targetReelId fourni, scroll vers lui
         if (widget.targetReelId != null) {
-          final targetIndex = _reels.indexWhere(
-            (reel) => reel.id == widget.targetReelId,
-          );
+          final targetIndex = _reels.indexWhere((r) => r.id == widget.targetReelId);
           if (targetIndex >= 0 && mounted) {
             _currentIndex = targetIndex;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted && _pageController.hasClients) {
-                _pageController.animateToPage(
-                  targetIndex,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
+                _pageController.jumpToPage(targetIndex);
               }
             });
           }
         }
       } else {
-        throw Exception('Failed to load reels: ${response.statusCode}');
+        throw Exception('Failed to load feed: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('❌ Error loading reels: $e');
-      setState(() {
-        _isLoading = false;
-        _errorMessage = e.toString();
-      });
-    } catch (e) {
+      debugPrint('❌ Error loading feed: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _errorMessage = e.toString();
       });
     }
+  }
+
+  // 🔄 Charge le feed en arrière-plan APRÈS avoir affiché le reel ciblé
+  void _loadFeedReelsInBackground(String token) {
+    debugPrint('🔄 Loading feed in background...');
+    
+    // ✅ Attend plus longtemps pour laisser l'utilisateur regarder tranquillement
+    Future.delayed(const Duration(seconds: 3), () async {
+      if (!mounted) return;
+      
+      try {
+        final response = await http.get(
+          Uri.parse('${AppConstants.fastApiBaseUrl}/posts/feed?limit=20'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+
+        if (response.statusCode == 200 && mounted) {
+          final responseData = json.decode(response.body);
+          
+          List<dynamic> postsJson;
+          if (responseData is List) {
+            postsJson = responseData;
+          } else if (responseData is Map && responseData.containsKey('posts')) {
+            postsJson = responseData['posts'] as List;
+          } else {
+            return;
+          }
+
+          final reels = <ReelModel>[];
+          for (var i = 0; i < postsJson.length; i++) {
+            try {
+              final post = PostModel.fromJson(postsJson[i]);
+              if ((post.type == 'reel' || post.type == 'video') && post.videoUrl.isNotEmpty) {
+                reels.add(ReelModel(
+                  id: post.id,
+                  userId: post.userId,
+                  username: post.username,
+                  userProfileImage: post.userProfileImage ?? '',
+                  isUserVerified: post.isUserVerified,
+                  videoUrl: post.videoUrl,
+                  thumbnailUrl: post.thumbnailUrl,
+                  caption: post.caption ?? '',
+                  hashtags: [],
+                  likesCount: post.likesCount,
+                  commentsCount: post.commentsCount,
+                  sharesCount: post.sharesCount,
+                  viewsCount: post.viewsCount,
+                  isLiked: post.isLiked,
+                  isBookmarked: post.isBookmarked,
+                  createdAt: post.createdAt,
+                  updatedAt: post.updatedAt,
+                  duration: 0.0,
+                ));
+              }
+            } catch (e) {
+              continue;
+            }
+          }
+
+          if (!mounted || reels.isEmpty) return;
+
+          // Trouve l'index du reel ciblé dans le feed complet
+          final targetIndex = reels.indexWhere((r) => r.id == widget.targetReelId);
+          
+          debugPrint('🔄 Background feed loaded: ${reels.length} reels, target at index $targetIndex');
+          
+          // ✅ RÉORGANISE les reels pour garder le target à l'index 0
+          // Évite que le PageView saute vers un autre reel
+          if (targetIndex >= 0) {
+            final targetReel = reels[targetIndex];
+            final reorderedReels = <ReelModel>[
+              targetReel, // Le reel actuel reste à l'index 0
+              ...reels.sublist(0, targetIndex), // Reels avant
+              ...reels.sublist(targetIndex + 1), // Reels après
+            ];
+            
+            // ✅ UPDATE SILENCIEUSEMENT : Ne pas setState pour éviter rebuild video
+            debugPrint('🔇 Updating reels list silently (no setState = no video restart)');
+            _reels = reorderedReels;
+            _videoPlayStates[widget.targetReelId!] = true;
+          } else {
+            // Target pas trouvé, garde juste la liste normale
+            setState(() {
+              _reels = reels;
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ Background feed loading failed: $e');
+        // Pas grave, l'utilisateur voit déjà le reel ciblé
+      }
+    });
   }
 
   void _onPageChanged(int index) {
@@ -381,7 +513,12 @@ class _ReelsScreenState extends State<ReelsScreen>
           ? await PostService.bookmarkPost(reelId)
           : await PostService.unbookmarkPost(reelId);
 
-      if (!success) {
+      if (success) {
+        // ✅ NOUVEAU: Notifier UserProvider pour refresh Profile
+        if (mounted) {
+          Provider.of<UserProvider>(context, listen: false).triggerPostRefresh();
+        }
+      } else {
         // Revert on failure
         if (mounted) {
           setState(() {
@@ -912,17 +1049,22 @@ Download our app to see more amazing products!
     return Stack(
       children: [
         // Main video pager
+        // ✅ OPTIMISATION: PageView optimisé pour performance
         PageView.builder(
           controller: _pageController,
           scrollDirection: Axis.vertical,
           onPageChanged: _onPageChanged,
           itemCount: _reels.length,
+          // ✅ CRUCIAL: Limite les pages gardées en mémoire
+          // 0 = seulement page actuelle, 1.0 = page suivante/précédente
+          pageSnapping: true,
           itemBuilder: (context, index) {
             final reel = _reels[index];
             final isCurrentReel = index == _currentIndex;
             final isPlaying = _videoPlayStates[reel.id] ?? isCurrentReel;
 
             return GestureDetector(
+              key: ValueKey('reel_${reel.id}'), // ✅ Key stable pour préserver widget
               onDoubleTapDown: (details) {
                 _onDoubleTap(reel.id, details.globalPosition);
               },

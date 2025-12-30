@@ -72,6 +72,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_lastPostUpdate != null &&
         userProvider.lastPostUpdate != _lastPostUpdate) {
       _lastPostUpdate = userProvider.lastPostUpdate;
+      // ✅ Invalide cache et recharge
+      _loadedTabs.clear();
+      _lastLoadTime = null;
       _loadProfileData();
     }
     _lastPostUpdate ??= userProvider.lastPostUpdate;
@@ -352,6 +355,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPressed: () {
                               context.push('/add-post');
                             },
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.history,
+                              color: Color(0xFF0D3D67),
+                            ),
+                            onPressed: () {
+                              context.push('/activity-logs');
+                            },
+                            tooltip: 'Historique d\'activité',
                           ),
                           IconButton(
                             icon: const Icon(
@@ -753,6 +766,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             
             return GestureDetector(
               key: itemKey,
+              behavior: HitTestBehavior.opaque, // ✅ Capture tous les taps
               onTap: () {
                 // Log user action avec correlation ID
                 final actionId = RemoteLogger.logUserAction(
@@ -770,12 +784,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   data: {'startPostId': item.id},
                 );
                 
-                // Navigation APRÈS le frame actuel pour éviter setState pendant build
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted && (item.type == 'reel' || item.type == 'video')) {
-                    context.push('/reels', extra: {'startPostId': item.id});
-                  }
-                });
+                // ✅ FIX: Navigation IMMÉDIATE sans postFrameCallback
+                if (item.type == 'reel' || item.type == 'video') {
+                  context.push('/reels', extra: {'startPostId': item.id});
+                }
               },
               child: Container(
                 decoration: BoxDecoration(
@@ -785,14 +797,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: item.videoUrl.isNotEmpty
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          (item.thumbnailUrl?.isNotEmpty ?? false)
-                              ? item.thumbnailUrl!
-                              : item.videoUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(Icons.videocam, size: 40);
-                          },
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.network(
+                              _getThumbnailUrl(item),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.videocam, size: 40, color: Colors.grey),
+                                );
+                              },
+                            ),
+                            // Icône play pour indiquer que c'est une vidéo
+                            const Center(
+                              child: Icon(
+                                Icons.play_circle_outline,
+                                size: 50,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
                       )
                     : const Center(
@@ -830,6 +856,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // debugPrint('📹 Profile Grid: Rendering item ${item.id}');
 
         return GestureDetector(
+          behavior: HitTestBehavior.opaque, // ✅ Capture tous les taps
           onTap: () {
             // Navigate to video player or reels screen with this post
             if (item.type == 'reel' || item.type == 'video') {
@@ -846,12 +873,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: item.videoUrl.isNotEmpty
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      _getThumbnailUrl(item),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.error);
-                      },
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          _getThumbnailUrl(item),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.error, color: Colors.grey),
+                            );
+                          },
+                        ),
+                        // Icône play pour indiquer que c'est une vidéo
+                        const Center(
+                          child: Icon(
+                            Icons.play_circle_outline,
+                            size: 50,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : const Icon(Icons.image),

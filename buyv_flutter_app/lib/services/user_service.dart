@@ -116,7 +116,7 @@ class UserService {
         'followers': (res['followersCount'] ?? 0) as int,
         'following': (res['followingCount'] ?? 0) as int,
         'likes': (res['totalLikes'] ?? 0) as int,
-        'savedPosts': (res['saved_posts_count'] ?? 0) as int,
+        'savedPosts': (res['savedPostsCount'] ?? 0) as int, // ✅ Backend retourne camelCase
       };
       
       RemoteLogger.logBackendResponse(
