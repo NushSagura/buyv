@@ -90,12 +90,12 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF114B7F)),
             onPressed: () {
               if (context.canPop()) {
                 context.pop();
@@ -107,9 +107,9 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
           title: const Text(
             'Language Settings',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+              color: Color(0xFF114B7F),
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
           centerTitle: true,
@@ -120,22 +120,22 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
             Container(
             margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey[900],
+              color: Colors.grey[100],
               borderRadius: BorderRadius.circular(12),
             ),
             child: SwitchListTile(
               title: const Text(
                 'Auto-detect Language',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: const Color(0xFF114B7F),
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              subtitle: const Text(
+              subtitle: Text(
                 'Automatically detect language based on device settings',
                 style: TextStyle(
-                  color: Colors.grey,
+                  color: Colors.grey[600],
                   fontSize: 14,
                 ),
               ),
@@ -145,7 +145,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                   _autoDetectLanguage = value;
                 });
               },
-              activeTrackColor: Colors.blue,
+              activeTrackColor: const Color(0xFFFF6F00),
             ),
           ),
           
@@ -154,7 +154,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey[900],
+              color: Colors.grey[100],
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -177,10 +177,10 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Current Language',
                         style: TextStyle(
-                          color: Colors.grey,
+                          color: Colors.grey[600],
                           fontSize: 14,
                         ),
                       ),
@@ -188,7 +188,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                       Text(
                         _selectedLanguage,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: const Color(0xFF114B7F),
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -214,7 +214,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                 const Text(
                   'Available Languages',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: const Color(0xFF114B7F),
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -223,7 +223,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                 Text(
                   '${_languages.length} languages',
                   style: TextStyle(
-                    color: Colors.grey[400],
+                    color: Colors.grey[600],
                     fontSize: 14,
                   ),
                 ),
@@ -245,7 +245,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
-                    color: Colors.grey[900],
+                    color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected ? Colors.blue : Colors.transparent,
@@ -268,7 +268,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                     subtitle: Text(
                       language['nativeName'],
                       style: TextStyle(
-                        color: Colors.grey[400],
+                        color: Colors.grey[600],
                         fontSize: 14,
                       ),
                     ),
@@ -292,7 +292,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                   child: ElevatedButton(
                     onPressed: _applyLanguageChange,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: const Color(0xFFFF6F00),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -301,7 +301,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                     child: const Text(
                       'Apply Changes',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: const Color(0xFF114B7F),
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -320,10 +320,10 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Download Language Packs',
                       style: TextStyle(
-                        color: Colors.grey,
+                        color: Colors.grey[600],
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -409,10 +409,10 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
+        backgroundColor: Colors.grey[100],
         title: const Text(
           'Language Changed',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: const Color(0xFF114B7F)),
         ),
         content: Text(
           'Language has been changed to $_selectedLanguage successfully!',
@@ -436,10 +436,10 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
+        backgroundColor: Colors.grey[100],
         title: const Text(
           'Restart Required',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: const Color(0xFF114B7F)),
         ),
         content: const Text(
           'The app needs to restart to apply the language changes. Do you want to restart now?',
@@ -478,7 +478,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
   void _downloadLanguagePacks() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Colors.grey[100],
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -491,7 +491,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
             const Text(
               'Download Language Packs',
               style: TextStyle(
-                color: Colors.white,
+                color: const Color(0xFF114B7F),
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -506,11 +506,11 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
               leading: Text(lang['flag'], style: const TextStyle(fontSize: 20)),
               title: Text(
                 lang['name'],
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: const Color(0xFF114B7F)),
               ),
               subtitle: Text(
                 'Size: ~5MB',
-                style: TextStyle(color: Colors.grey[400]),
+                style: TextStyle(color: Colors.grey[600]),
               ),
               trailing: const Icon(Icons.download, color: Colors.blue),
               onTap: () {
@@ -518,7 +518,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Downloading ${lang['name']} language pack...'),
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFFFF6F00),
                   ),
                 );
               },

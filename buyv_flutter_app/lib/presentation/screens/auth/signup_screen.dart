@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/custom_text_field.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/social_login_button.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/remote_logger.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -16,253 +14,259 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
+  final _displayNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _usernameController = TextEditingController();
-  final _displayNameController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
 
   @override
   void dispose() {
+    _usernameController.dispose();
+    _displayNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _usernameController.dispose();
-    _displayNameController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: Image.asset(
-            'assets/icons/ic_back.png',
-            width: 24,
-            height: 24,
-          ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.primaryGradient,
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Header
-                _buildHeader(),
-                
-                const SizedBox(height: 40),
-                
-                // Display Name Field
-                CustomTextField(
-                  controller: _displayNameController,
-                  labelText: 'Full Name',
-                  hintText: 'Enter your full name',
-                  prefixIcon: Icons.person_outline,
-                  validator: _validateDisplayName,
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Username Field
-                CustomTextField(
-                  controller: _usernameController,
-                  labelText: 'Username',
-                  hintText: 'Enter your username',
-                  prefixIcon: Icons.alternate_email,
-                  validator: _validateUsername,
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Email Field
-                CustomTextField(
-                  controller: _emailController,
-                  labelText: 'Email',
-                  hintText: 'Enter your email',
-                  keyboardType: TextInputType.emailAddress,
-                  prefixIcon: Icons.email_outlined,
-                  validator: _validateEmail,
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Password Field
-                CustomTextField(
-                  controller: _passwordController,
-                  labelText: 'Password',
-                  hintText: 'Enter your password',
-                  obscureText: _obscurePassword,
-                  prefixIcon: Icons.lock_outline,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                      color: AppTheme.primaryColor,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                  validator: _validatePassword,
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Confirm Password Field
-                CustomTextField(
-                  controller: _confirmPasswordController,
-                  labelText: 'Confirm Password',
-                  hintText: 'Re-enter your password',
-                  obscureText: _obscureConfirmPassword,
-                  prefixIcon: Icons.lock_outline,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
-                      color: AppTheme.primaryColor,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureConfirmPassword = !_obscureConfirmPassword;
-                      });
-                    },
-                  ),
-                  validator: _validateConfirmPassword,
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Terms and Conditions
-                Row(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
                   children: [
-                    Checkbox(
-                      value: _acceptTerms,
-                      onChanged: (value) {
-                        setState(() {
-                          _acceptTerms = value ?? false;
-                        });
-                      },
-                      activeColor: AppTheme.primaryColor,
-                    ),
-                    Expanded(
-                      child: RichText(
-                        text: TextSpan(
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
-                          children: [
-                            const TextSpan(text: 'I agree to the '),
-                            TextSpan(
-                              text: 'Terms and Conditions',
-                              style: TextStyle(
-                                color: Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const TextSpan(text: ' and '),
-                            TextSpan(
-                              text: 'Privacy Policy',
-                              style: TextStyle(
-                                color: Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                    // Back button
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left, color: Colors.white, size: 32),
+                          onPressed: () => context.go('/login'),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Sign Up Button
-                Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) {
-                    return CustomButton(
-                      text: 'Create Account',
-                      isLoading: authProvider.isLoading,
-                      onPressed: _acceptTerms ? () => _handleSignUp(authProvider) : null,
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Divider
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'OR',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Icon
+                    const Icon(
+                      Icons.person_add_outlined,
+                      color: Colors.white,
+                      size: 80,
                     ),
-                    const Expanded(child: Divider()),
-                  ],
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Google Sign Up
-                Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) {
-                    return SocialLoginButton(
-                      text: 'Create New Account',
-                      iconPath: 'assets/images/google_icon.svg',
-                      isLoading: authProvider.isLoading,
-                      onPressed: () => _handleGoogleSignUp(authProvider),
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Login Link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Already have an account? ',
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Title
+                    const Text(
+                      'Créer un compte',
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Rejoignez la communauté BuyV',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
                         fontSize: 16,
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: Text(
-                        'Sign In',
-                        style: TextStyle(
-                          color: AppTheme.primaryColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Username field
+                    _buildTextField(
+                      controller: _usernameController,
+                      hintText: "Nom d'utilisateur *",
+                      icon: Icons.person_outline,
+                      validator: _validateUsername,
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Full name field
+                    _buildTextField(
+                      controller: _displayNameController,
+                      hintText: 'Nom complet (optionnel)',
+                      icon: Icons.badge_outlined,
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Email field
+                    _buildTextField(
+                      controller: _emailController,
+                      hintText: 'Email *',
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: _validateEmail,
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Password field
+                    _buildTextField(
+                      controller: _passwordController,
+                      hintText: 'Mot de passe *',
+                      icon: Icons.lock_outline,
+                      obscureText: _obscurePassword,
+                      validator: _validatePassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          color: AppColors.primaryGray,
                         ),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                     ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Confirm password field
+                    _buildTextField(
+                      controller: _confirmPasswordController,
+                      hintText: 'Confirmer le mot de passe *',
+                      icon: Icons.lock_outline,
+                      obscureText: _obscureConfirmPassword,
+                      validator: _validateConfirmPassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          color: AppColors.primaryGray,
+                        ),
+                        onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Terms and Conditions
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _acceptTerms,
+                          onChanged: (value) => setState(() => _acceptTerms = value ?? false),
+                          activeColor: Colors.white,
+                          checkColor: AppColors.primary,
+                          side: const BorderSide(color: Colors.white, width: 2),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _acceptTerms = !_acceptTerms),
+                            child: RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                ),
+                                children: const [
+                                  TextSpan(text: "J'accepte les "),
+                                  TextSpan(
+                                    text: "conditions d'utilisation",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                  TextSpan(text: ' et la '),
+                                  TextSpan(
+                                    text: 'politique de confidentialité',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Sign Up Button
+                    Consumer<AuthProvider>(
+                      builder: (context, authProvider, child) {
+                        return SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: (authProvider.isLoading || !_acceptTerms)
+                                ? null
+                                : () => _handleSignUp(authProvider),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.primary,
+                              disabledBackgroundColor: Colors.white.withOpacity(0.5),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              elevation: 5,
+                            ),
+                            child: authProvider.isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Créer mon compte',
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Login Link
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Déjà un compte ? ',
+                          style: TextStyle(color: Colors.white.withOpacity(0.9)),
+                        ),
+                        TextButton(
+                          onPressed: () => context.go('/login'),
+                          child: const Text(
+                            'Se connecter',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 20),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -270,83 +274,74 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return Column(
-      children: [
-        Text(
-          'Create New Account',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textColor,
-          ),
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      style: const TextStyle(color: AppColors.black),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(color: AppColors.primaryGray),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
         ),
-        
-        const SizedBox(height: 8),
-        
-        Text(
-          'Join us and enjoy the shopping experience',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
+        prefixIcon: Icon(icon, color: AppColors.primary),
+        suffixIcon: suffixIcon,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        errorStyle: const TextStyle(color: Colors.white),
+      ),
+      validator: validator,
     );
-  }
-
-  String? _validateDisplayName(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Full name is required';
-    }
-    if (value.length < 2) {
-      return 'Name must be at least 2 characters';
-    }
-    return null;
   }
 
   String? _validateUsername(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Username is required';
+      return "Le nom d'utilisateur est requis";
     }
     if (value.length < 3) {
-      return 'Username must be at least 3 characters';
-    }
-    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
-      return 'Username must contain only letters and numbers';
+      return 'Minimum 3 caractères';
     }
     return null;
   }
 
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Email is required';
+      return "L'email est requis";
     }
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-      return 'Invalid email address';
+      return 'Email invalide';
     }
     return null;
   }
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Password is required';
+      return 'Le mot de passe est requis';
     }
-    if (value.length < 8) {
-      return 'Password must be at least 8 characters';
-    }
-    if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(value)) {
-      return 'Password must contain uppercase, lowercase and number';
+    if (value.length < 6) {
+      return 'Minimum 6 caractères';
     }
     return null;
   }
 
   String? _validateConfirmPassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Confirm password is required';
+      return 'Confirmez le mot de passe';
     }
     if (value != _passwordController.text) {
-      return 'Passwords do not match';
+      return 'Les mots de passe ne correspondent pas';
     }
     return null;
   }
@@ -357,24 +352,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         username: _usernameController.text.trim(),
-        displayName: _displayNameController.text.trim(),
+        displayName: _displayNameController.text.trim().isNotEmpty
+            ? _displayNameController.text.trim()
+            : _usernameController.text.trim(),
       );
 
       if (mounted && success) {
+        RemoteLogger.logUserAction(
+          'Registration successful',
+          context: {'email': _emailController.text, 'username': _usernameController.text},
+        );
         context.go('/home');
       } else if (mounted) {
-        _showErrorSnackBar(authProvider.errorMessage ?? 'Failed to create account');
+        _showErrorSnackBar(authProvider.errorMessage ?? 'Échec de l\'inscription');
       }
-    }
-  }
-
-  Future<void> _handleGoogleSignUp(AuthProvider authProvider) async {
-    final success = await authProvider.signInWithGoogle();
-    
-    if (mounted && success) {
-      context.go('/home');
-    } else if (mounted) {
-      _showErrorSnackBar(authProvider.errorMessage ?? 'Failed to create account with Google');
     }
   }
 
@@ -382,8 +373,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }

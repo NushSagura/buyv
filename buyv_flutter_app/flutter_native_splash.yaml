@@ -1,0 +1,12 @@
+flutter_native_splash:
+  color: "#FFFFFF"
+  # Ne pas utiliser d'image pour le native splash - juste fond blanc
+  # Le splash_screen.dart affichera splash.jpg
+  
+  android: true
+  android_12:
+    color: "#FFFFFF"
+    
+  ios: true
+  
+  web: false

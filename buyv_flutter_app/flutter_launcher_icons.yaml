@@ -1,0 +1,24 @@
+# Configuration Launcher Icons pour BuyV
+# Génère toutes les tailles d'icônes (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi)
+
+flutter_launcher_icons:
+  
+  # Configuration Android
+  android: true
+  image_path: "assets/images/logo_v3.png"
+  
+  # Adaptive Icons Android (API 26+)
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/logo_v3.png"
+  
+  # Configuration iOS
+  ios: true
+  image_path_ios: "assets/images/logo_v3.png"
+  
+  # Remove old launcher icons
+  remove_alpha_ios: true
+
+
+# Après modification, exécutez:
+# flutter pub get
+# dart run flutter_launcher_icons:main

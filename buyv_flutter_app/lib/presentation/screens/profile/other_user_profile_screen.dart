@@ -1,15 +1,25 @@
-import '../../../data/models/post_model.dart';
 import 'package:flutter/material.dart';
-import '../../../services/auth_api_service.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../../data/models/post_model.dart';
 import '../../../domain/models/user_model.dart';
 import '../../../services/user_service.dart';
 import '../../../services/follow_service.dart';
 import '../../../services/post_service.dart';
-import 'follow_list_screen.dart';
-import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
+/// Other User Profile Screen - Vue du profil d''un autre utilisateur
+/// 
+/// Structure conforme au design Kotlin :
+/// - Top Bar : Bouton retour orange + Bouton Follow/Following
+/// - Stats avec avatar central (Following | Avatar | Followers)
+/// - Display Name + Username
+/// - Posts count
+/// - Share Profile button
+/// - Bio (optionnel)
+/// - Tabs : Reels | Products
+/// - Grille de contenu (3 colonnes)
 class OtherUserProfileScreen extends StatefulWidget {
   final String userId;
   final String? username;
@@ -37,8 +47,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
   int _followersCount = 0;
   int _followingCount = 0;
   int _postsCount = 0;
-  int _reelsCount = 0;
-  int _productsCount = 0;
 
   // Follow status
   bool _isFollowing = false;
@@ -48,9 +56,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
   List<PostModel> _userProducts = [];
 
   bool _isLoading = true;
-  bool _isLoadingContent = true;
   bool _isFollowLoading = false;
-  String? _error;
 
   @override
   void initState() {
@@ -59,609 +65,473 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
   }
 
   Future<void> _loadUserProfile() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
     try {
       // Load user profile
-      final userProfile = await _userService.getUserProfile(widget.userId);
-      if (userProfile != null) {
-        _userProfile = userProfile;
-
-        // Load statistics
-        final futures = [
-          _userService.getFollowersCount(widget.userId),
-          _userService.getFollowingCount(widget.userId),
-          _userService.getUserPostsCount(widget.userId),
-          _userService.getUserReelsCount(widget.userId),
-          _userService.getUserProductsCount(widget.userId),
-        ];
-
-        final results = await Future.wait(futures);
-
-        _followersCount = results[0];
-        _followingCount = results[1];
-        _postsCount = results[2];
-        _reelsCount = results[3];
-        _productsCount = results[4];
-
-        // Check follow status
-        try {
-          final me = await AuthApiService.me();
-          final currentUserId = me['id'] as String?;
-          if (currentUserId != null && currentUserId != widget.userId) {
-            _isFollowing = await _followService.isFollowing(widget.userId);
-          }
-        } catch (_) {}
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        // Load content for current tab
-        await _loadTabContent();
-      } else {
-        setState(() {
-          _error = 'User profile not found';
-          _isLoading = false;
-        });
+      final user = await _userService.getUserById(widget.userId);
+      
+      // Load statistics
+      final stats = await _userService.getUserStats(widget.userId);
+      
+      // Check follow status
+      final currentUserId = Provider.of<AuthProvider>(context, listen: false).currentUser?.id;
+      bool following = false;
+      if (currentUserId != null) {
+        following = await _followService.isFollowing(currentUserId, widget.userId);
       }
-    } catch (e) {
-      debugPrint('Error loading user profile: $e');
+      
+      // Load user content
+      final reels = await _postService.getUserReels(widget.userId);
+      final products = await _postService.getUserProducts(widget.userId);
+
       setState(() {
-        _error = 'Failed to load profile: $e';
+        _userProfile = user;
+        _followersCount = stats[''followers''] ?? 0;
+        _followingCount = stats[''following''] ?? 0;
+        _postsCount = stats[''posts''] ?? 0;
+        _isFollowing = following;
+        _userReels = reels;
+        _userProducts = products;
         _isLoading = false;
       });
-    }
-  }
-
-  Future<void> _loadTabContent() async {
-    setState(() {
-      _isLoadingContent = true;
-    });
-
-    try {
-      switch (_selectedTabIndex) {
-        case 0: // Reels
-          _userReels = await _postService.getUserReels(widget.userId);
-          break;
-        case 1: // Products
-          _userProducts = await _postService.getUserProducts(widget.userId);
-          break;
-      }
     } catch (e) {
-      debugPrint('Error loading tab content: $e');
-    }
-
-    setState(() {
-      _isLoadingContent = false;
-    });
-  }
-
-  Future<void> _toggleFollow() async {
-    String? currentUserId;
-    try {
-      final me = await AuthApiService.me();
-      currentUserId = me['id'] as String?;
-    } catch (_) {}
-    if (currentUserId == null || currentUserId == widget.userId) return;
-
-    setState(() {
-      _isFollowLoading = true;
-    });
-
-    try {
-      if (_isFollowing) {
-        await _followService.unfollowUser(widget.userId);
-        _followersCount = (_followersCount > 0) ? _followersCount - 1 : 0;
-      } else {
-        await _followService.followUser(widget.userId);
-        _followersCount++;
-      }
-
-      setState(() {
-        _isFollowing = !_isFollowing;
-      });
-    } catch (e) {
-      debugPrint('Error toggling follow: $e');
+      setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Failed to ${_isFollowing ? 'unfollow' : 'follow'} user',
-            ),
+            content: Text(''Failed to load profile: $e''),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
+  }
 
-    setState(() {
-      _isFollowLoading = false;
-    });
+  Future<void> _toggleFollow() async {
+    final currentUserId = Provider.of<AuthProvider>(context, listen: false).currentUser?.id;
+    if (currentUserId == null) return;
+
+    setState(() => _isFollowLoading = true);
+
+    try {
+      if (_isFollowing) {
+        await _followService.unfollowUser(currentUserId, widget.userId);
+        setState(() {
+          _isFollowing = false;
+          _followersCount = _followersCount > 0 ? _followersCount - 1 : 0;
+        });
+      } else {
+        await _followService.followUser(currentUserId, widget.userId);
+        setState(() {
+          _isFollowing = true;
+          _followersCount = _followersCount + 1;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(''Failed to update follow status: $e''),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isFollowLoading = false);
+    }
+  }
+
+  void _shareProfile() {
+    final username = _userProfile?.username ?? widget.username ?? ''user'';
+    Share.share(''Check out @$username''s profile on BuyV!'');
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = Provider.of<AuthProvider>(context).currentUser?.id;
+    final isOwnProfile = currentUserId == widget.userId;
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back, color: Color(0xFFFF6F00)),
-          ),
-        ),
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(color: Color(0xFFFF6F00)),
         ),
       );
     }
 
-    if (_error != null) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back, color: Color(0xFFFF6F00)),
-          ),
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                _error!,
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadUserProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6F00),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final currentUserId = Provider.of<AuthProvider>(
-      context,
-      listen: false,
-    ).currentUser?.id;
-    final showFollowButton =
-        currentUserId != null && currentUserId != widget.userId;
-
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RefreshIndicator(
-        onRefresh: _loadUserProfile,
+      body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // Header with back button and follow button
-            SliverToBoxAdapter(
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          color: Color(0xFFFF6F00),
-                          size: 28,
-                        ),
-                      ),
-                      if (showFollowButton)
-                        ElevatedButton(
-                          onPressed: _isFollowLoading ? null : _toggleFollow,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _isFollowing
-                                ? Colors.grey
-                                : const Color(0xFFFF6F00),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                          child: _isFollowLoading
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  _isFollowing ? 'Following' : 'Follow',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Profile content
+            // Top Bar
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Stats + Profile Image Row
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Following stat
-                          _buildProfileStat(
-                            _followingCount.toString(),
-                            'Following',
-                            () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => FollowListScreen(
-                                    userId: widget.userId,
-                                    username: _userProfile?.username ?? 'user',
-                                    initialTabIndex:
-                                        1, // Start with Following tab
-                                  ),
+                    IconButton(
+                      icon: Icon(Icons.arrow_back, color: Color(0xFFFF6F00), size: 28),
+                      onPressed: () => context.pop(),
+                    ),
+                    if (!isOwnProfile)
+                      ElevatedButton(
+                        onPressed: _isFollowLoading ? null : _toggleFollow,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isFollowing ? Colors.grey : Color(0xFFFF6F00),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                        ),
+                        child: _isFollowLoading
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
                                 ),
-                              );
-                            },
-                          ),
-
-                          // Profile Image
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundImage:
-                                _userProfile?.profileImageUrl != null &&
-                                    _userProfile!.profileImageUrl!.isNotEmpty
-                                ? NetworkImage(_userProfile!.profileImageUrl!)
-                                : null,
-                            backgroundColor: Colors.grey[200],
-                            child:
-                                _userProfile?.profileImageUrl == null ||
-                                    _userProfile!.profileImageUrl!.isEmpty
-                                ? const Icon(
-                                    Icons.person,
-                                    size: 50,
-                                    color: Color(0xFFFF6F00),
-                                  )
-                                : null,
-                          ),
-
-                          // Followers stat
-                          _buildProfileStat(
-                            _followersCount.toString(),
-                            'Followers',
-                            () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => FollowListScreen(
-                                    userId: widget.userId,
-                                    username: _userProfile?.username ?? 'user',
-                                    initialTabIndex:
-                                        0, // Start with Followers tab
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                              )
+                            : Text(
+                                _isFollowing ? ''Following'' : ''Follow'',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                       ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Name & Username
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _userProfile?.displayName.isNotEmpty == true
-                              ? _userProfile!.displayName
-                              : 'User',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0D3D67),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      '@${_userProfile?.username.isNotEmpty == true ? _userProfile!.username : 'user'}',
-                      style: const TextStyle(fontSize: 13, color: Colors.grey),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Posts stat
-                    _buildProfileStat(_postsCount.toString(), 'Posts', () {}),
-
-                    const SizedBox(height: 16),
-
-                    // Bio
-                    if (_userProfile?.bio != null &&
-                        _userProfile!.bio!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: Text(
-                          _userProfile!.bio!,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF333333),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-
-                    const SizedBox(height: 16),
-
-                    // Share Profile Button
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 60.0),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (_userProfile != null) {
-                              _shareProfile(context, _userProfile!);
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF2F2F2),
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Share Profile',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Tab Icons Row with counts
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildTabIconWithCount(
-                          0,
-                          Icons.video_library,
-                          Icons.video_library_outlined,
-                          _reelsCount,
-                        ),
-                        _buildTabIconWithCount(
-                          1,
-                          Icons.shopping_bag,
-                          Icons.shopping_bag_outlined,
-                          _productsCount,
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
                   ],
                 ),
               ),
             ),
 
-            // Content Grid based on selected tab
+            SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+            // Stats + Profile Image
             SliverToBoxAdapter(
-              child: SizedBox(
-                height: 650,
-                child: _isLoadingContent
-                    ? const Center(child: CircularProgressIndicator())
-                    : _buildTabContent(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildStat(_followingCount.toString(), ''Following'', () {
+                      // Navigate to following list
+                    }),
+                    
+                    const SizedBox(width: 32),
+                    
+                    // Profile Image
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFFF0F0F0),
+                      ),
+                      child: ClipOval(
+                        child: _userProfile?.avatarUrl != null && _userProfile!.avatarUrl.isNotEmpty
+                            ? Image.network(
+                                _userProfile!.avatarUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Image.asset(
+                                    ''assets/images/default_avatar.png'',
+                                    fit: BoxFit.cover,
+                                  );
+                                },
+                              )
+                            : Image.asset(
+                                ''assets/images/default_avatar.png'',
+                                fit: BoxFit.cover,
+                              ),
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 32),
+                    
+                    _buildStat(_followersCount.toString(), ''Followers'', () {
+                      // Navigate to followers list
+                    }),
+                  ],
+                ),
               ),
             ),
+
+            SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+            // Name & Username
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _userProfile?.displayName ?? ''User'',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0D3D67),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    ''@${_userProfile?.username ?? widget.username ?? "user"}'',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+            // Posts Count
+            SliverToBoxAdapter(
+              child: _buildStat(_postsCount.toString(), ''Posts''),
+            ),
+
+            SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+            // Share Button
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 60),
+                child: ElevatedButton(
+                  onPressed: _shareProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFFF2F2F2),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    minimumSize: Size(double.infinity, 42),
+                  ),
+                  child: Text(
+                    ''Share Profile'',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ),
+
+            SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+            // Bio (if exists)
+            if (_userProfile?.bio != null && _userProfile!.bio!.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    _userProfile!.bio!,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF333333),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+
+            SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+            // Tabs
+            SliverToBoxAdapter(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  IconButton(
+                    onPressed: () => setState(() => _selectedTabIndex = 0),
+                    icon: Icon(
+                      Icons.play_circle_outline,
+                      size: 30,
+                      color: _selectedTabIndex == 0 ? Color(0xFFFF6F00) : Colors.grey,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => setState(() => _selectedTabIndex = 1),
+                    icon: Icon(
+                      Icons.shopping_bag_outlined,
+                      size: 20,
+                      color: _selectedTabIndex == 1 ? Color(0xFFFF6F00) : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+            // Content Grid
+            _selectedTabIndex == 0 ? _buildReelsGrid() : _buildProductsGrid(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProfileStat(String number, String label, VoidCallback onTap) {
+  Widget _buildStat(String number, String label, [VoidCallback? onTap]) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         children: [
           Text(
             number,
-            style: const TextStyle(
-              color: Color(0xFF0D3D67),
-              fontWeight: FontWeight.bold,
+            style: TextStyle(
               fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0D3D67),
             ),
           ),
-          Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTabIconWithCount(
-    int index,
-    IconData filledIcon,
-    IconData outlineIcon,
-    int count,
-  ) {
-    final isSelected = _selectedTabIndex == index;
-    return Column(
-      children: [
-        IconButton(
-          onPressed: () {
-            setState(() {
-              _selectedTabIndex = index;
-            });
-            _loadTabContent();
+  Widget _buildReelsGrid() {
+    if (_userReels.isEmpty) {
+      return SliverToBoxAdapter(
+        child: _buildEmptyState(''No reels yet'', ''This user hasn''t posted any reels''),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      sliver: SliverGrid(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 2,
+          mainAxisSpacing: 2,
+          childAspectRatio: 0.75,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final reel = _userReels[index];
+            return GestureDetector(
+              onTap: () {
+                // Navigate to reel detail
+                context.push(''/reels/${reel.id}'');
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                ),
+                child: reel.mediaUrl != null
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(
+                            reel.thumbnailUrl ?? reel.mediaUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(Icons.video_library, size: 40, color: Colors.grey);
+                            },
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Icon(Icons.play_circle_outline, color: Colors.white, size: 24),
+                          ),
+                        ],
+                      )
+                    : Icon(Icons.video_library, size: 40, color: Colors.grey),
+              ),
+            );
           },
-          icon: Icon(
-            isSelected ? filledIcon : outlineIcon,
-            color: isSelected ? const Color(0xFFFF6F00) : Colors.grey,
-            size: index == 0 ? 30 : 20,
-          ),
+          childCount: _userReels.length,
         ),
-        Text(
-          count.toString(),
-          style: TextStyle(
-            fontSize: 12,
-            color: isSelected ? const Color(0xFFFF6F00) : Colors.grey,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTabContent() {
-    switch (_selectedTabIndex) {
-      case 0:
-        // User Reels
-        return _buildContentGrid(
-          _userReels,
-          'No reels yet',
-          'This user hasn\'t posted any reels',
-        );
-      case 1:
-        // User Products
-        return _buildContentGrid(
-          _userProducts,
-          'No products yet',
-          'This user hasn\'t added any products',
-        );
-      default:
-        return const Center(child: Text('Unknown tab'));
-    }
-  }
-
-  Widget _buildContentGrid(
-    List<PostModel> items,
-    String emptyTitle,
-    String emptySubtitle,
-  ) {
-    if (items.isEmpty) {
-      return _buildEmptyState(emptyTitle, emptySubtitle);
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 1,
       ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return GestureDetector(
-          onTap: () {
-            // Navigate to post detail or handle tap
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.grey[200],
-            ),
-            child: item.videoUrl.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      item.thumbnailUrl ?? item.videoUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.error);
-                      },
-                    ),
-                  )
-                : const Icon(Icons.image),
-          ),
-        );
-      },
     );
   }
 
-  Widget _buildEmptyState(String title, String subtitle) {
-    return Center(
+  Widget _buildProductsGrid() {
+    if (_userProducts.isEmpty) {
+      return SliverToBoxAdapter(
+        child: _buildEmptyState(''No products yet'', ''This user hasn''t posted any products''),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      sliver: SliverGrid(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 2,
+          mainAxisSpacing: 2,
+          childAspectRatio: 0.75,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final product = _userProducts[index];
+            return GestureDetector(
+              onTap: () {
+                // Navigate to product detail
+                context.push(''/products/${product.id}'');
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                ),
+                child: product.mediaUrl != null
+                    ? Image.network(
+                        product.mediaUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(Icons.shopping_bag, size: 40, color: Colors.grey);
+                        },
+                      )
+                    : Icon(Icons.shopping_bag, size: 40, color: Colors.grey),
+              ),
+            );
+          },
+          childCount: _userProducts.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String title, String message) {
+    return Padding(
+      padding: const EdgeInsets.all(48),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(_getEmptyStateIcon(), size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 16),
+          Icon(
+            Icons.inbox_outlined,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          SizedBox(height: 16),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
-            subtitle,
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            message,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
             textAlign: TextAlign.center,
           ),
         ],
       ),
-    );
-  }
-
-  IconData _getEmptyStateIcon() {
-    switch (_selectedTabIndex) {
-      case 0:
-        return Icons.video_library_outlined;
-      case 1:
-        return Icons.shopping_bag_outlined;
-      default:
-        return Icons.help_outline;
-    }
-  }
-
-  void _shareProfile(BuildContext context, UserModel user) {
-    final String profileUrl = 'https://buyv.app/profile/${user.id}';
-    final String shareText =
-        'Check out ${user.displayName ?? user.username}\'s profile on BuyV!\n\n'
-        'Followers: ${user.followersCount}\n'
-        'Following: ${user.followingCount}\n'
-        'Posts: ${user.reelsCount}\n\n'
-        '$profileUrl';
-
-    Share.share(
-      shareText,
-      subject: '${user.displayName ?? user.username}\'s BuyV Profile',
     );
   }
 }

@@ -82,12 +82,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF114B7F)),
             onPressed: () {
               if (context.canPop()) {
                 context.pop();
@@ -99,31 +99,32 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         title: const Text(
           'Change Password',
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+            color: Color(0xFF114B7F),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 8),
               // Security Info Card
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.1),
+                  color: const Color(0xFF0066CC).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                  border: Border.all(color: const Color(0xFF0066CC).withOpacity(0.3)),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.security, color: Colors.blue, size: 24),
+                    Icon(Icons.security, color: Color(0xFF0066CC), size: 24),
                     SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -132,7 +133,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           Text(
                             'Security Reminder',
                             style: TextStyle(
-                              color: Colors.blue,
+                              color: Color(0xFF0066CC),
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -141,7 +142,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           Text(
                             'Use a strong password with at least 8 characters, including uppercase, lowercase, numbers, and special characters.',
                             style: TextStyle(
-                              color: Colors.blue,
+                              color: Color(0xFF114B7F),
                               fontSize: 12,
                             ),
                           ),
@@ -158,7 +159,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const Text(
                 'Current Password',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: const Color(0xFF114B7F),
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -167,12 +168,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               TextFormField(
                 controller: _currentPasswordController,
                 obscureText: _obscureCurrentPassword,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: const Color(0xFF114B7F)),
                 decoration: InputDecoration(
                   hintText: 'Enter your current password',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  hintStyle: TextStyle(color: Colors.grey[600]),
                   filled: true,
-                  fillColor: Colors.grey[900],
+                  fillColor: Colors.grey[100],
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -180,7 +181,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureCurrentPassword ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.grey[400],
+                      color: Colors.grey[600],
                     ),
                     onPressed: () {
                       setState(() {
@@ -203,7 +204,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const Text(
                 'New Password',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: const Color(0xFF114B7F),
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -212,12 +213,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               TextFormField(
                 controller: _newPasswordController,
                 obscureText: _obscureNewPassword,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: const Color(0xFF114B7F)),
                 decoration: InputDecoration(
                   hintText: 'Enter your new password',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  hintStyle: TextStyle(color: Colors.grey[600]),
                   filled: true,
-                  fillColor: Colors.grey[900],
+                  fillColor: Colors.grey[100],
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -225,7 +226,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureNewPassword ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.grey[400],
+                      color: Colors.grey[600],
                     ),
                     onPressed: () {
                       setState(() {
@@ -254,9 +255,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               if (_newPasswordController.text.isNotEmpty) ...[
                 Row(
                   children: [
-                    const Text(
+                    Text(
                       'Password Strength: ',
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                     Text(
                       _getStrengthText(),
@@ -271,7 +272,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: _getPasswordStrength(),
-                  backgroundColor: Colors.grey[800],
+                  backgroundColor: Colors.grey[200],
                   valueColor: AlwaysStoppedAnimation<Color>(_getStrengthColor()),
                 ),
                 const SizedBox(height: 12),
@@ -280,7 +281,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[900],
+                    color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -302,7 +303,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const Text(
                 'Confirm New Password',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: const Color(0xFF114B7F),
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -311,12 +312,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: _obscureConfirmPassword,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: const Color(0xFF114B7F)),
                 decoration: InputDecoration(
                   hintText: 'Confirm your new password',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  hintStyle: TextStyle(color: Colors.grey[600]),
                   filled: true,
-                  fillColor: Colors.grey[900],
+                  fillColor: Colors.grey[100],
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -324,7 +325,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.grey[400],
+                      color: Colors.grey[600],
                     ),
                     onPressed: () {
                       setState(() {
@@ -352,7 +353,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _changePassword,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFFFF6F00),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -370,7 +371,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       : const Text(
                           'Change Password',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: const Color(0xFF114B7F),
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -466,14 +467,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
+        backgroundColor: Colors.grey[100],
         title: const Row(
           children: [
             Icon(Icons.check_circle, color: Colors.green),
             SizedBox(width: 8),
             Text(
               'Success',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: const Color(0xFF114B7F)),
             ),
           ],
         ),
@@ -498,10 +499,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
+        backgroundColor: Colors.grey[100],
         title: const Text(
           'Forgot Password?',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: const Color(0xFF114B7F)),
         ),
         content: const Text(
           'If you forgot your current password, you can reset it by logging out and using the "Forgot Password" option on the login screen.',
@@ -520,7 +521,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Redirecting to login screen...'),
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFFFF6F00),
                   ),
                 );
               }

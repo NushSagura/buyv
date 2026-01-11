@@ -159,6 +159,7 @@ def update_fcm_token(
 
 @router.delete("/me")
 def delete_account(
+    password_data: dict,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -174,7 +175,17 @@ def delete_account(
     - Notifications
     
     Required for Apple Store and Google Play Store compliance.
+    
+    Requires password confirmation for security.
     """
+    # Verify password before deletion
+    from .auth import verify_password
+    if not verify_password(password_data.get('password', ''), current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid password"
+        )
+    
     user_id = current_user.id
     
     # The cascade deletes are handled by SQLAlchemy relationships

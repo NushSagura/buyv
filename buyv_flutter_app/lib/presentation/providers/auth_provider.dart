@@ -166,6 +166,30 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Delete account permanently
+  /// Required for Google Play Store and Apple App Store compliance
+  Future<void> deleteAccount({
+    required String password,
+  }) async {
+    try {
+      _status = AuthStatus.loading;
+      notifyListeners();
+      
+      await _authRepository.deleteAccount(password: password);
+      
+      // Clear user data and sign out
+      _currentUser = null;
+      _status = AuthStatus.unauthenticated;
+      _errorMessage = null;
+      notifyListeners();
+    } catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.toString();
+      notifyListeners();
+      throw Exception('Failed to delete account: $e');
+    }
+  }
+
   Future<void> updateUserData(UserModel updatedUser) async {
     try {
       await _authRepository.updateUserData(updatedUser);
@@ -174,6 +198,31 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = e.toString();
       notifyListeners();
+    }
+  }
+
+  /// Update user profile (displayName, avatarUrl, phoneNumber)
+  Future<void> updateProfile({
+    String? displayName,
+    String? avatarUrl,
+    String? phoneNumber,
+  }) async {
+    if (_currentUser == null) {
+      throw Exception('No user logged in');
+    }
+
+    try {
+      final updatedUser = _currentUser!.copyWith(
+        displayName: displayName,
+        profileImageUrl: avatarUrl,
+        phoneNumber: phoneNumber,
+      );
+
+      await updateUserData(updatedUser);
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      throw Exception('Failed to update profile: $e');
       rethrow;
     }
   }

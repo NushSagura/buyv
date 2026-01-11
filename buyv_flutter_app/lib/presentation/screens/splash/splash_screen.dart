@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/router/route_names.dart';
 import '../../providers/auth_provider.dart';
 import '../../../services/security/secure_token_manager.dart';
@@ -14,40 +14,13 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-
+class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
     
-    _animationController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
-    
-    _scaleAnimation = Tween<double>(
-      begin: 0.5,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
-    
-    _animationController.forward();
-    
-    // Vérifier le token et rediriger vers la page appropriée
-    Timer(const Duration(seconds: 3), () {
+    // Afficher splash pendant 2 secondes puis naviguer
+    Timer(const Duration(seconds: 2), () {
       _checkAuthAndNavigate();
     });
   }
@@ -56,6 +29,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (!mounted) return;
     
     try {
+      // Check if first time
+      final prefs = await SharedPreferences.getInstance();
+      final isFirstTime = prefs.getBool('isFirstTime') ?? true;
+      
       // Vérifier si l'utilisateur a un token valide
       final hasValidToken = await SecureTokenManager.isAccessTokenValid();
       
@@ -78,29 +55,31 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             if (authProvider.isAuthenticated) {
               context.go(RouteNames.home);
             } else {
-              context.go(RouteNames.onboarding);
+              // Token invalid but first time
+              context.go(isFirstTime ? RouteNames.onboarding : RouteNames.login);
             }
           }
         }
       } else {
-        // Pas de token valide - aller à l'onboarding
-        debugPrint('⚠️ Pas de token valide - redirection vers onboarding');
+        // Pas de token valide - check si première fois
+        debugPrint('⚠️ Pas de token valide - redirection');
         if (mounted) {
-          context.go(RouteNames.onboarding);
+          context.go(isFirstTime ? RouteNames.onboarding : RouteNames.login);
         }
       }
     } catch (e) {
       debugPrint('❌ Erreur lors de la vérification auth: $e');
       // En cas d'erreur, aller à l'onboarding
       if (mounted) {
-        context.go(RouteNames.onboarding);
+        final prefs = await SharedPreferences.getInstance();
+        final isFirstTime = prefs.getBool('isFirstTime') ?? true;
+        context.go(isFirstTime ? RouteNames.onboarding : RouteNames.login);
       }
     }
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
     super.dispose();
   }
 
@@ -116,112 +95,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             fit: BoxFit.cover,
           ),
         ),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.black.withValues(alpha: 0.3),
-            Colors.black.withValues(alpha: 0.7),
-          ],
-        ),
-          ),
-          child: Center(
-            child: AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Logo
-                        Container(
-                          width: 150,
-                          height: 150,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(30),
-                            child: Image.asset(
-                              'assets/images/logo_v3.png',
-                              width: 150,
-                              height: 150,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 30),
-                        
-                        // App Name
-                        Text(
-                          'BuyV',
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withValues(alpha: 0.5),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 10),
-                        
-                        // Tagline
-                        Text(
-                          'Shop Smart, Buy with Confidence',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white.withValues(alpha: 0.9),
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withValues(alpha: 0.5),
-                                blurRadius: 5,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 50),
-                        
-                        // Loading Indicator
-                        SizedBox(
-                          width: 30,
-                          height: 30,
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppTheme.primaryColor,
-                            ),
-                            strokeWidth: 3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
+        // Pas de contenu par-dessus - juste l'image splash fullscreen comme dans Kotlin
       ),
     );
   }

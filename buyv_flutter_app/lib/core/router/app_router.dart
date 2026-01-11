@@ -6,27 +6,36 @@ import '../../presentation/screens/onboarding/onboarding_screen.dart';
 import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/signup_screen.dart';
 import '../../presentation/screens/auth/register_screen.dart';
+import '../../presentation/screens/auth/forgot_password_screen.dart';
+import '../../presentation/screens/auth/otp_verification_screen.dart';
+import '../../presentation/screens/auth/reset_password_screen.dart';
+import '../../presentation/screens/auth/password_changed_success_screen.dart';
 import '../../presentation/screens/home/home_screen.dart';
-import '../../presentation/screens/profile/profile_screen.dart';
+import '../../presentation/screens/profile/profile_screen_kotlin.dart';
 import '../../presentation/screens/profile/edit_profile_screen.dart';
-import '../../presentation/screens/profile/add_post_screen.dart';
-import '../../presentation/screens/shop/shop_screen.dart';
-import '../../presentation/screens/cart/cart_screen.dart';
+import '../../presentation/screens/profile/add_post_screen_kotlin.dart';
+import '../../presentation/screens/profile/follow_list_screen.dart';
+import '../../presentation/screens/shop/shop_screen_new.dart';
+import '../../presentation/screens/cart/cart_screen_new.dart';
 import '../../presentation/screens/reels/reels_screen.dart';
 import '../../presentation/screens/reels/search_reels_screen.dart';
-import '../../presentation/screens/search/search_screen.dart';
 import '../../presentation/screens/comments/comments_screen.dart';
 import '../../presentation/screens/products/product_detail_screen.dart';
-import '../../presentation/screens/products/recently_viewed_screen.dart';
+import '../../presentation/screens/products/product_detail_screen_new.dart';
+import '../../presentation/screens/products/recently_viewed_screen_kotlin.dart';
+import '../../presentation/screens/favorites/favorites_screen.dart';
+import '../../presentation/screens/shop/search_products_screen.dart';
+import '../../presentation/screens/shop/all_products_screen.dart';
 import '../../presentation/screens/notifications/notifications_screen.dart';
-import '../../presentation/screens/settings/settings_screen.dart';
+import '../../presentation/screens/settings/settings_screen_kotlin.dart';
 import '../../presentation/screens/settings/location_settings_screen.dart';
 import '../../presentation/screens/settings/language_settings_screen.dart';
 import '../../presentation/screens/settings/change_password_screen.dart';
+import '../../presentation/screens/settings/delete_account_screen.dart';
 import '../../presentation/screens/payment/payment_screen.dart';
 import '../../presentation/screens/payment/payment_methods_screen.dart';
-import '../../presentation/screens/orders/orders_track_screen.dart';
-import '../../presentation/screens/orders/orders_history_screen.dart';
+import '../../presentation/screens/orders/orders_track_screen_kotlin.dart';
+import '../../presentation/screens/orders/orders_history_screen_kotlin.dart';
 import '../../presentation/screens/help/help_screen.dart';
 import '../../presentation/screens/settings/diagnostic_logs_screen.dart';
 import '../../presentation/screens/debug/user_activity_log_screen.dart';
@@ -34,7 +43,7 @@ import '../../presentation/screens/splash/splash_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 import './route_names.dart';
 import './screens/post_detail_screen.dart';
-import './screens/user_profile_screen.dart';
+import '../../presentation/screens/profile/profile_screen_kotlin.dart';
 
 /// Main App Router with Deep Linking Support
 class AppRouter {
@@ -120,12 +129,39 @@ class AppRouter {
           name: 'register',
           builder: (context, state) => const RegisterScreen(),
         ),
+        GoRoute(
+          path: RouteNames.forgotPassword,
+          name: 'forgot-password',
+          builder: (context, state) => const ForgotPasswordScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.otpVerification,
+          name: 'otp-verification',
+          builder: (context, state) {
+            final email = state.uri.queryParameters['email'] ?? '';
+            return OTPVerificationScreen(email: email);
+          },
+        ),
+        GoRoute(
+          path: RouteNames.resetPassword,
+          name: 'reset-password',
+          builder: (context, state) => const ResetPasswordScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.passwordChangedSuccess,
+          name: 'password-changed-success',
+          builder: (context, state) => const PasswordChangedSuccessScreen(),
+        ),
 
         // Main Navigation
         GoRoute(
           path: RouteNames.home,
           name: 'home',
-          builder: (context, state) => const HomeScreen(),
+          builder: (context, state) {
+            final tabStr = state.uri.queryParameters['tab'];
+            final tab = int.tryParse(tabStr ?? '0') ?? 0;
+            return HomeScreen(initialTab: tab);
+          },
         ),
         GoRoute(
           path: RouteNames.reels,
@@ -144,14 +180,14 @@ class AppRouter {
         GoRoute(
           path: RouteNames.cart,
           name: 'cart',
-          builder: (context, state) => const CartScreen(),
+          builder: (context, state) => const CartScreenNew(),
         ),
 
         // Profile
         GoRoute(
           path: RouteNames.profile,
           name: 'profile',
-          builder: (context, state) => const ProfileScreen(),
+          builder: (context, state) => const ProfileScreenKotlin(),
         ),
         GoRoute(
           path: RouteNames.editProfile,
@@ -161,7 +197,22 @@ class AppRouter {
         GoRoute(
           path: RouteNames.addPost,
           name: 'add-post',
-          builder: (context, state) => const AddPostScreen(),
+          builder: (context, state) => const AddPostScreenKotlin(),
+        ),
+        GoRoute(
+          path: RouteNames.followList,
+          name: 'follow-list',
+          builder: (context, state) {
+            final userId = state.uri.queryParameters['userId'] ?? '';
+            final username = state.uri.queryParameters['username'] ?? '';
+            final tabStr = state.uri.queryParameters['tab'];
+            final initialTabIndex = int.tryParse(tabStr ?? '0') ?? 0;
+            return FollowListScreen(
+              userId: userId,
+              username: username,
+              initialTabIndex: initialTabIndex,
+            );
+          },
         ),
 
         // 🔥 Deep Link: User Profile with UID
@@ -170,7 +221,7 @@ class AppRouter {
           name: 'user-detail',
           builder: (context, state) {
             final uid = state.pathParameters['uid']!;
-            return UserProfileScreen(userId: uid);
+            return ProfileScreenKotlin(userId: uid);
           },
         ),
 
@@ -204,14 +255,31 @@ class AppRouter {
           name: 'product-detail',
           builder: (context, state) {
             final productId = state.pathParameters['id']!;
-            // Optional query parameters
+            // Check for extra data first (from internal navigation)
+            final extra = state.extra as Map<String, dynamic>?;
+            
+            if (extra != null) {
+              return ProductDetailScreenNew(
+                productId: productId,
+                productName: extra['productName'] ?? 'Product',
+                productImage: extra['productImage'] ?? '',
+                price: (extra['price'] as num?)?.toDouble() ?? 0.0,
+                category: extra['category'] ?? 'General',
+                description: extra['description'] as String?,
+                rating: (extra['rating'] as num?)?.toDouble(),
+                sizes: (extra['sizes'] as List<dynamic>?)?.map((s) => s.toString()).toList(),
+                productImages: (extra['productImages'] as List<dynamic>?)?.map((s) => s.toString()).toList(),
+              );
+            }
+            
+            // Fallback for deep links with query parameters
             final productName = state.uri.queryParameters['name'] ?? 'Product';
             final productImage = state.uri.queryParameters['image'] ?? '';
             final priceStr = state.uri.queryParameters['price'] ?? '0.0';
             final category = state.uri.queryParameters['category'] ?? 'General';
             final price = double.tryParse(priceStr) ?? 0.0;
 
-            return ProductDetailScreen(
+            return ProductDetailScreenNew(
               productId: productId,
               productName: productName,
               productImage: productImage,
@@ -221,28 +289,39 @@ class AppRouter {
           },
         ),
 
-        // Search
-        GoRoute(
-          path: RouteNames.search,
-          name: 'search',
-          builder: (context, state) => const SearchScreen(),
-        ),
+        // Search - Reels & Users
         GoRoute(
           path: RouteNames.searchReels,
           name: 'search-reels',
           builder: (context, state) => const SearchReelsScreen(),
+        ),
+        // Search - Products
+        GoRoute(
+          path: RouteNames.searchProducts,
+          name: 'search-products',
+          builder: (context, state) => const SearchProductsScreen(),
+        ),
+
+        // All Products by Category
+        GoRoute(
+          path: '${RouteNames.allProducts}/:title',
+          name: 'all-products',
+          builder: (context, state) {
+            final title = state.pathParameters['title'] ?? 'Products';
+            return AllProductsScreen(title: title);
+          },
         ),
 
         // Orders
         GoRoute(
           path: RouteNames.ordersHistory,
           name: 'orders-history',
-          builder: (context, state) => const OrdersHistoryScreen(),
+          builder: (context, state) => const OrdersHistoryScreenKotlin(),
         ),
         GoRoute(
           path: RouteNames.ordersTrack,
           name: 'orders-track',
-          builder: (context, state) => const OrdersTrackScreen(),
+          builder: (context, state) => const OrdersTrackScreenKotlin(),
         ),
 
         // Payment
@@ -261,7 +340,7 @@ class AppRouter {
         GoRoute(
           path: RouteNames.settings,
           name: 'settings',
-          builder: (context, state) => const SettingsScreen(),
+          builder: (context, state) => const SettingsScreenKotlin(),
         ),
         GoRoute(
           path: RouteNames.locationSettings,
@@ -277,6 +356,11 @@ class AppRouter {
           path: RouteNames.changePassword,
           name: 'change-password',
           builder: (context, state) => const ChangePasswordScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.deleteAccount,
+          name: 'delete-account',
+          builder: (context, state) => const DeleteAccountScreen(),
         ),
 
         // Notifications
@@ -303,9 +387,14 @@ class AppRouter {
           builder: (context, state) => const UserActivityLogScreen(),
         ),
         GoRoute(
+          path: '/favorites',
+          name: 'favorites',
+          builder: (context, state) => const FavoritesScreen(),
+        ),
+        GoRoute(
           path: RouteNames.recentlyViewed,
           name: 'recently-viewed',
-          builder: (context, state) => const RecentlyViewedScreen(),
+          builder: (context, state) => const RecentlyViewedScreenKotlin(),
         ),
       ],
     );

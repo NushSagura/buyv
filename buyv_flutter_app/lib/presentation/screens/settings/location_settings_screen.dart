@@ -39,12 +39,12 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF114B7F)),
             onPressed: () {
               if (context.canPop()) {
                 context.pop();
@@ -56,9 +56,9 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
         title: const Text(
           'Location Settings',
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+            color: Color(0xFF114B7F),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
@@ -126,7 +126,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
       child: Text(
         title,
         style: const TextStyle(
-          color: Colors.white,
+          color: const Color(0xFF114B7F),
           fontSize: 16,
           fontWeight: FontWeight.w600,
         ),
@@ -138,14 +138,14 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
       ),
       child: SwitchListTile(
         title: Text(
           title,
           style: TextStyle(
-            color: onChanged != null ? Colors.white : Colors.grey[600],
+            color: onChanged != null ? Colors.white : Colors.grey[700],
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
@@ -153,7 +153,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
         subtitle: Text(
           subtitle,
           style: TextStyle(
-            color: onChanged != null ? Colors.grey[400] : Colors.grey[600],
+            color: onChanged != null ? Colors.grey[700] : Colors.grey[700],
             fontSize: 14,
           ),
         ),
@@ -168,7 +168,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -209,7 +209,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey[400],
+            color: Colors.grey[700],
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -219,14 +219,14 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
           initialValue: value,
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.grey[800],
+            fillColor: Colors.grey[200],
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
             ),
           ),
-          dropdownColor: Colors.grey[800],
-          style: const TextStyle(color: Colors.white),
+          dropdownColor: Colors.grey[200],
+          style: const TextStyle(color: const Color(0xFF114B7F)),
           items: items.map((item) {
             return DropdownMenuItem(
               value: item,
@@ -243,7 +243,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -269,7 +269,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
                 Text(
                   '$_selectedCity, $_selectedCountry',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: const Color(0xFF114B7F),
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -278,7 +278,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
                 Text(
                   _autoDetectLocation ? 'Auto-detected' : 'Manually selected',
                   style: TextStyle(
-                    color: Colors.grey[400],
+                    color: Colors.grey[700],
                     fontSize: 14,
                   ),
                 ),
@@ -309,14 +309,14 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            color: Colors.grey[900],
+            color: Colors.grey[100],
             borderRadius: BorderRadius.circular(12),
           ),
           child: ListTile(
             leading: const Icon(Icons.history, color: Colors.grey),
             title: Text(
               location,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: const Color(0xFF114B7F)),
             ),
             trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
             onTap: () => _selectRecentLocation(location),
@@ -334,7 +334,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
           child: ElevatedButton(
             onPressed: _saveSettings,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+              backgroundColor: const Color(0xFFFF6F00),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -343,7 +343,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
             child: const Text(
               'Save Settings',
               style: TextStyle(
-                color: Colors.white,
+                color: const Color(0xFF114B7F),
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -381,7 +381,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Getting current location...'),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFFFF6F00),
       ),
     );
   }

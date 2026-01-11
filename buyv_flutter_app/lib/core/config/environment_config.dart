@@ -28,8 +28,12 @@ class EnvironmentConfig {
   /// - Windows : ouvrez cmd et tapez "ipconfig"
   /// - Mac/Linux : ouvrez terminal et tapez "ifconfig" ou "ip addr"
   /// Cherchez l'adresse IPv4 (ex: 192.168.1.100)
+  /// 
+  /// IPs disponibles :
+  /// - Wi-Fi : 192.168.11.103 (réseau principal)
+  /// - Hotspot : 192.168.137.1 (si tablette connectée au hotspot PC)
   static const String _localNetworkIp =
-      '192.168.11.109'; // ← CHANGEZ SELON VOTRE IP
+      '192.168.11.103'; // ← CHANGEZ EN 192.168.137.1 si hotspot
 
   // ═══════════════════════════════════════════════════════════════════
   // 🚀 CONFIGURATION FASTAPI (Backend principal)

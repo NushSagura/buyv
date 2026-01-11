@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:io';
 import '../../providers/auth_provider.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../widgets/custom_text_field.dart';
 import '../../../services/cloudinary_service.dart';
 
+/// Edit Profile Screen - Conforme au screenshot Kotlin
+/// 
+/// Structure :
+/// - AppBar avec titre bleu centré et bouton retour
+/// - Avatar circulaire avec bordure bleue et bouton caméra
+/// - Formulaire : Name, Email (readonly), Phone
+/// - Bouton orange "Save Changes"
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -17,15 +22,14 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _displayNameController = TextEditingController();
-  final _usernameController = TextEditingController();
-  final _bioController = TextEditingController();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
-  
+
   bool _isLoading = false;
-  XFile? _selectedProfileImage;
+  bool _isUploadingImage = false;
+  String? _profileImageUrl;
 
   @override
   void initState() {
@@ -36,616 +40,52 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void _loadUserData() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.currentUser;
-    
+
     if (user != null) {
-      _displayNameController.text = user.displayName;
-      _usernameController.text = user.username;
-      _bioController.text = user.bio ?? '';
+      _nameController.text = user.displayName;
       _emailController.text = user.email;
-      // Note: phoneNumber is not available in UserModel, using placeholder
-      _phoneController.text = '';
+      // Note: phoneNumber not in current UserModel
+      _phoneController.text = user.phoneNumber ?? '';
+      _profileImageUrl = user.profileImageUrl;
     }
   }
 
-  @override
-  void dispose() {
-    _displayNameController.dispose();
-    _usernameController.dispose();
-    _bioController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
+  Future<void> _pickImage() async {
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final currentUser = authProvider.currentUser;
-      
-      if (currentUser != null) {
-        String? profileImageUrl = currentUser.profileImageUrl;
-        
-        // Upload profile image to Cloudinary if a new image was selected
-        if (_selectedProfileImage != null) {
-          try {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Uploading image...'),
-                backgroundColor: AppTheme.primaryColor,
-              ),
-            );
-            
-            profileImageUrl = await CloudinaryService.uploadProfileImage(_selectedProfileImage!.path);
-            
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Image uploaded successfully'),
-                  backgroundColor: AppTheme.successGreen,
-                ),
-              );
-            }
-          } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Failed to upload image: ${e.toString()}'),
-                  backgroundColor: AppTheme.errorRed,
-                ),
-              );
-            }
-            // Continue with profile update even if image upload fails
-          }
-        }
-        
-        // Create updated user model - ONLY MODIFIABLE FIELDS
-        // Backend UserUpdate accepts: displayName, profileImageUrl, bio, interests, settings
-        // DO NOT send: username, email (read-only)
-        final updatedUser = currentUser.copyWith(
-          displayName: _displayNameController.text.trim(),
-          bio: _bioController.text.trim(),
-          profileImageUrl: profileImageUrl,
-          updatedAt: DateTime.now(),
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (pickedFile != null) {
+        setState(() => _isUploadingImage = true);
+
+        // Upload to Cloudinary using static method
+        final imageUrl = await CloudinaryService.uploadImage(
+          pickedFile,
+          folder: 'profile_pictures',
         );
-        
-        // Update user data through AuthProvider
-        await authProvider.updateUserData(updatedUser);
-        
-        // Force reload user data to ensure UI reflects changes
-        await authProvider.reloadUserData();
-        
-        // Update local controllers with the new data
-        _loadUserData();
-        
+
+        setState(() {
+          _profileImageUrl = imageUrl;
+          _isUploadingImage = false;
+        });
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Changes saved successfully'),
-              backgroundColor: AppTheme.primaryColor,
+              content: Text('Profile picture updated!'),
+              backgroundColor: Color(0xFF0066CC),
             ),
           );
-          
-          // Don't navigate back immediately, let user see the updated data
-          await Future.delayed(const Duration(milliseconds: 500));
-          if (mounted) {
-            Navigator.pop(context, true); // Return true to indicate data was updated
-          }
         }
-      } else {
-        throw Exception('User not logged in');
       }
     } catch (e) {
-      // Debug log removed to avoid print in production
+      setState(() => _isUploadingImage = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('An error occurred: ${e.toString()}'),
-            backgroundColor: AppTheme.errorRed,
-          ),
-        );
-      }
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: Image.asset(
-            'assets/icons/ic_back.png',
-            width: 24,
-            height: 24,
-          ),
-        ),
-        title: const Text(
-          'Edit Profile',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _saveProfile,
-            child: Text(
-              'Save',
-              style: TextStyle(
-                color: _isLoading ? Colors.grey : AppTheme.primaryColor,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, child) {
-          final user = authProvider.currentUser;
-          
-          if (user == null) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  // Profile Image Section
-                  Center(
-                    child: Stack(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AppTheme.primaryColor,
-                              width: 3,
-                            ),
-                          ),
-                          child: CircleAvatar(
-                            radius: 60,
-                            backgroundColor: Colors.grey[200],
-                            backgroundImage: _selectedProfileImage != null
-                                ? (kIsWeb 
-                                    ? NetworkImage(_selectedProfileImage!.path)
-                                    : FileImage(File(_selectedProfileImage!.path)) as ImageProvider)
-                                : (user.profileImageUrl?.isNotEmpty ?? false)
-                                    ? NetworkImage(user.profileImageUrl!)
-                                    : null,
-                            child: (_selectedProfileImage == null && (user.profileImageUrl?.isEmpty ?? true))
-                                ? Image.asset(
-                                    'assets/icons/ic_profile.png',
-                                    width: 60,
-                                    height: 60,
-                                  )
-                                : null,
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: () async {
-                              final scaffoldMessenger = ScaffoldMessenger.of(context);
-                              try {
-                                // Show dialog to choose between camera and gallery
-                                final source = await showDialog<ImageSource>(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return AlertDialog(
-                                      title: const Text('Choose Image Source'),
-                                      content: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          ListTile(
-                                            leading: const Icon(Icons.camera_alt),
-                                            title: const Text('Camera'),
-                                            onTap: () => Navigator.pop(context, ImageSource.camera),
-                                          ),
-                                          ListTile(
-                                            leading: const Icon(Icons.photo_library),
-                                            title: const Text('Gallery'),
-                                            onTap: () => Navigator.pop(context, ImageSource.gallery),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                );
-
-                                if (source != null) {
-                                  final pickedFile = await _picker.pickImage(source: source);
-                                  
-                                  if (pickedFile != null && mounted) {
-                                    setState(() {
-                                      _selectedProfileImage = pickedFile;
-                                    });
-                                    
-                                    scaffoldMessenger.showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Image selected successfully'),
-                                        backgroundColor: AppTheme.successGreen,
-                                      ),
-                                    );
-                                  }
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  scaffoldMessenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text('Error selecting image: ${e.toString()}'),
-                                      backgroundColor: AppTheme.errorRed,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryColor,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // Display Name Field
-                  CustomTextField(
-                    controller: _displayNameController,
-                    labelText: 'Full Name',
-                    hintText: 'Enter your full name',
-                    prefixIcon: Icons.person,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your full name';
-                      }
-                      return null;
-                    },
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Username Field (READ-ONLY - Cannot be changed)
-                  CustomTextField(
-                    controller: _usernameController,
-                    labelText: 'Username',
-                    hintText: 'Username cannot be changed',
-                    prefixIcon: Icons.alternate_email,
-                    enabled: false, // Username is read-only
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your username';
-                      }
-                      if (value.length < 3) {
-                        return 'Username must be at least 3 characters';
-                      }
-                      return null;
-                    },
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Bio Field
-                  CustomTextField(
-                    controller: _bioController,
-                    labelText: 'Bio',
-                    hintText: 'Write something about yourself',
-                    prefixIcon: Icons.info_outline,
-                    maxLines: 3,
-                    maxLength: 150,
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Email Field (READ-ONLY - Cannot be changed)
-                  CustomTextField(
-                    controller: _emailController,
-                    labelText: 'Email',
-                    hintText: 'Email cannot be changed',
-                    prefixIcon: Icons.email,
-                    keyboardType: TextInputType.emailAddress,
-                    enabled: false, // Email is read-only
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Phone Field
-                  CustomTextField(
-                    controller: _phoneController,
-                    labelText: 'Phone Number',
-                    hintText: 'Enter your phone number',
-                    prefixIcon: Icons.phone,
-                    keyboardType: TextInputType.phone,
-                  ),
-                  
-                  const SizedBox(height: 40),
-                  
-                  // Save Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _saveProfile,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Text(
-                              'Save Changes',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // Additional Options
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!),
-                    ),
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.lock, color: AppTheme.primaryColor),
-                          title: const Text('Change Password'),
-                          subtitle: const Text('Update your account password'),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () {
-                            _showChangePasswordDialog();
-                          },
-                        ),
-                        const Divider(),
-                        ListTile(
-                          leading: const Icon(Icons.privacy_tip, color: AppTheme.primaryColor),
-                          title: const Text('Privacy Settings'),
-                          subtitle: const Text('Manage your privacy preferences'),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () {
-                            _showPrivacySettingsDialog();
-                          },
-                        ),
-                        const Divider(),
-                        ListTile(
-                          leading: const Icon(Icons.notifications, color: AppTheme.primaryColor),
-                          title: const Text('Notification Settings'),
-                          subtitle: const Text('Notification settings will be added soon'),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () {
-                            // TODO: Implement notification settings
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _showChangePasswordDialog() {
-    final currentPasswordController = TextEditingController();
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
-    bool isCurrentPasswordVisible = false;
-    bool isNewPasswordVisible = false;
-    bool isConfirmPasswordVisible = false;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Change Password'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: currentPasswordController,
-                  obscureText: !isCurrentPasswordVisible,
-                  decoration: InputDecoration(
-                    labelText: 'Current Password',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        isCurrentPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          isCurrentPasswordVisible = !isCurrentPasswordVisible;
-                        });
-                      },
-                    ),
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: newPasswordController,
-                  obscureText: !isNewPasswordVisible,
-                  decoration: InputDecoration(
-                    labelText: 'New Password',
-                    prefixIcon: const Icon(Icons.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        isNewPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          isNewPasswordVisible = !isNewPasswordVisible;
-                        });
-                      },
-                    ),
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: confirmPasswordController,
-                  obscureText: !isConfirmPasswordVisible,
-                  decoration: InputDecoration(
-                    labelText: 'Confirm New Password',
-                    prefixIcon: const Icon(Icons.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          isConfirmPasswordVisible = !isConfirmPasswordVisible;
-                        });
-                      },
-                    ),
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _changePassword(
-                  currentPasswordController.text,
-                  newPasswordController.text,
-                  confirmPasswordController.text,
-                );
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-              ),
-              child: const Text('Change Password', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _changePassword(String currentPassword, String newPassword, String confirmPassword) async {
-    if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all fields'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (newPassword != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('New passwords do not match'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password must be at least 6 characters long'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
-      await authProvider.changePassword(
-        currentPassword: currentPassword,
-        newPassword: newPassword,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password changed successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text('Failed to upload image: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -653,117 +93,314 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  void _showPrivacySettingsDialog() {
-    bool profileVisibility = true;
-    bool showEmail = false;
-    bool showPhone = false;
-    bool allowMessages = true;
-    bool showOnlineStatus = true;
+  Future<void> _saveChanges() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Privacy Settings'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SwitchListTile(
-                  title: const Text('Public Profile'),
-                  subtitle: const Text('Allow others to see your profile'),
-                  value: profileVisibility,
-                  onChanged: (value) {
-                    setState(() {
-                      profileVisibility = value;
-                    });
-                  },
-                ),
-                SwitchListTile(
-                  title: const Text('Show Email'),
-                  subtitle: const Text('Display email on your profile'),
-                  value: showEmail,
-                  onChanged: (value) {
-                    setState(() {
-                      showEmail = value;
-                    });
-                  },
-                ),
-                SwitchListTile(
-                  title: const Text('Show Phone'),
-                  subtitle: const Text('Display phone number on your profile'),
-                  value: showPhone,
-                  onChanged: (value) {
-                    setState(() {
-                      showPhone = value;
-                    });
-                  },
-                ),
-                SwitchListTile(
-                  title: const Text('Allow Messages'),
-                  subtitle: const Text('Allow others to send you messages'),
-                  value: allowMessages,
-                  onChanged: (value) {
-                    setState(() {
-                      allowMessages = value;
-                    });
-                  },
-                ),
-                SwitchListTile(
-                  title: const Text('Show Online Status'),
-                  subtitle: const Text('Show when you are online'),
-                  value: showOnlineStatus,
-                  onChanged: (value) {
-                    setState(() {
-                      showOnlineStatus = value;
-                    });
-                  },
-                ),
-              ],
+    setState(() => _isLoading = true);
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      await authProvider.updateProfile(
+        displayName: _nameController.text.trim(),
+        avatarUrl: _profileImageUrl,
+        phoneNumber: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully!'),
+            backgroundColor: Color(0xFF0066CC),
+          ),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update profile: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Custom AppBar
+                  _buildAppBar(),
+                  const SizedBox(height: 24),
+
+                  // Profile Image Section
+                  _buildProfileImage(),
+                  const SizedBox(height: 8),
+                  Text(
+                    _isUploadingImage ? 'Uploading...' : 'Tap to change photo',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _isUploadingImage ? const Color(0xFFFF6F00) : Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Name Field
+                  _buildTextField(
+                    label: 'Name',
+                    controller: _nameController,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Email Field (Read-only)
+                  _buildTextField(
+                    label: 'Email',
+                    controller: _emailController,
+                    enabled: false,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Phone Field
+                  _buildTextField(
+                    label: 'Phone',
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        // Basic phone validation
+                        if (!RegExp(r'^\+?[0-9\s]+$').hasMatch(value)) {
+                          return 'Invalid phone number';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 40),
+
+                  // Save Button
+                  _buildSaveButton(),
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _savePrivacySettings(
-                  profileVisibility,
-                  showEmail,
-                  showPhone,
-                  allowMessages,
-                  showOnlineStatus,
-                );
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-              ),
-              child: const Text('Save Settings', style: TextStyle(color: Colors.white)),
-            ),
-          ],
         ),
       ),
     );
   }
 
-  void _savePrivacySettings(
-    bool profileVisibility,
-    bool showEmail,
-    bool showPhone,
-    bool allowMessages,
-    bool showOnlineStatus,
-  ) {
-    // Simulate saving privacy settings
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Privacy settings saved successfully!'),
-        backgroundColor: Colors.green,
+  Widget _buildAppBar() {
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(
+              Icons.chevron_left,
+              size: 32,
+              color: Color(0xFF0066CC),
+            ),
+            onPressed: () => context.pop(),
+            padding: EdgeInsets.zero,
+          ),
+          Expanded(
+            child: Text(
+              'Edit Profile',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0066CC),
+              ),
+            ),
+          ),
+          const SizedBox(width: 48), // Balance the back button
+        ],
       ),
     );
   }
 
+  Widget _buildProfileImage() {
+    return GestureDetector(
+      onTap: _isUploadingImage ? null : _pickImage,
+      child: Stack(
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF0066CC), width: 3),
+            ),
+            child: ClipOval(
+              child: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                  ? Image.network(
+                      _profileImageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/images/default_avatar.png',
+                          fit: BoxFit.cover,
+                        );
+                      },
+                    )
+                  : Image.asset(
+                      'assets/images/default_avatar.png',
+                      fit: BoxFit.cover,
+                    ),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: Color(0xFF0066CC),
+                shape: BoxShape.circle,
+              ),
+              child: _isUploadingImage
+                  ? const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    TextInputType keyboardType = TextInputType.text,
+    bool enabled = true,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF0066CC),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          enabled: enabled,
+          validator: validator,
+          style: const TextStyle(
+            fontSize: 16,
+            color: Color(0xFF114B7F),
+          ),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: enabled ? Colors.white : Colors.grey[100],
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFB3C1D1)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFB3C1D1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF1B7ACE), width: 2),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _saveChanges,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFF6F00),
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey[400],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 2,
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Text(
+                'Save Changes',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+      ),
+    );
+  }
 }

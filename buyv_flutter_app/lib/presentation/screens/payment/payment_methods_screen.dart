@@ -48,26 +48,26 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
         return false;
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF114B7F)),
             onPressed: () => context.go('/settings'),
           ),
           title: const Text(
             'Payment Methods',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+              color: Color(0xFF114B7F),
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
+            icon: const Icon(Icons.add, color: Color(0xFFFF6F00)),
             onPressed: _addPaymentMethod,
           ),
         ],
@@ -91,7 +91,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
               child: ElevatedButton(
                 onPressed: _addPaymentMethod,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: const Color(0xFFFF6F00),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -100,7 +100,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                 child: const Text(
                   'Add New Payment Method',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: const Color(0xFF114B7F),
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -118,10 +118,10 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: method['isDefault'] ? Colors.blue : Colors.grey[800]!,
+          color: method['isDefault'] ? Colors.blue : Colors.grey[200]!,
           width: method['isDefault'] ? 2 : 1,
         ),
       ),
@@ -135,12 +135,12 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.grey[800],
+                    color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     method['icon'],
-                    color: Colors.white,
+                    color: const Color(0xFF114B7F),
                     size: 24,
                   ),
                 ),
@@ -154,7 +154,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                           Text(
                             method['name'],
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: const Color(0xFF114B7F),
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -173,7 +173,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                               child: const Text(
                                 'Default',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: const Color(0xFF114B7F),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -186,7 +186,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                       Text(
                         method['type'],
                         style: TextStyle(
-                          color: Colors.grey[400],
+                          color: Colors.grey[600],
                           fontSize: 14,
                         ),
                       ),
@@ -205,7 +205,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                 ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert, color: Colors.grey),
-                  color: Colors.grey[800],
+                  color: Colors.grey[200],
                   onSelected: (value) => _handleMenuAction(value, index),
                   itemBuilder: (context) => [
                     if (!method['isDefault'])
@@ -213,14 +213,14 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                         value: 'set_default',
                         child: Text(
                           'Set as Default',
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: const Color(0xFF114B7F)),
                         ),
                       ),
                     const PopupMenuItem(
                       value: 'edit',
                       child: Text(
                         'Edit',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: const Color(0xFF114B7F)),
                       ),
                     ),
                     const PopupMenuItem(
@@ -275,10 +275,10 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
+        backgroundColor: Colors.grey[100],
         title: const Text(
           'Edit Payment Method',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: const Color(0xFF114B7F)),
         ),
         content: const Text(
           'Payment method editing functionality will be implemented here.',
@@ -310,10 +310,10 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
+        backgroundColor: Colors.grey[100],
         title: const Text(
           'Delete Payment Method',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: const Color(0xFF114B7F)),
         ),
         content: Text(
           'Are you sure you want to delete ${method['name']}?',
@@ -350,7 +350,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
   void _addPaymentMethod() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Colors.grey[100],
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -363,7 +363,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
             const Text(
               'Add Payment Method',
               style: TextStyle(
-                color: Colors.white,
+                color: const Color(0xFF114B7F),
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -382,10 +382,10 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
 
   Widget _buildPaymentOption(String title, IconData icon) {
     return ListTile(
-      leading: Icon(icon, color: Colors.white),
+      leading: Icon(icon, color: const Color(0xFF114B7F)),
       title: Text(
         title,
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: const Color(0xFF114B7F)),
       ),
       trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
       onTap: () {
@@ -393,7 +393,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$title setup will be implemented'),
-            backgroundColor: Colors.blue,
+            backgroundColor: const Color(0xFFFF6F00),
           ),
         );
       },

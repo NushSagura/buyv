@@ -136,7 +136,7 @@ class AuthApiService {
   }
 
   /// Delete current user account - Required for App Store compliance
-  static Future<void> deleteAccount() async {
+  static Future<void> deleteAccount({required String password}) async {
     final token = await SecureTokenManager.getAccessToken();
     final res = await http.delete(
       _url('/users/me'),
@@ -144,6 +144,7 @@ class AuthApiService {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       },
+      body: jsonEncode({'password': password}),
     );
     _parseResponse(res);
     // Clear all tokens after account deletion

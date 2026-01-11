@@ -4,6 +4,7 @@ class UserModel {
   final String username;
   final String displayName;
   final String? profileImageUrl;
+  final String? phoneNumber;
   final String? bio;
   final int followersCount;
   final int followingCount;
@@ -20,6 +21,7 @@ class UserModel {
     required this.username,
     required this.displayName,
     this.profileImageUrl,
+    this.phoneNumber,
     this.bio,
     this.followersCount = 0,
     this.followingCount = 0,
@@ -38,6 +40,7 @@ class UserModel {
       username: json['username'] ?? '',
       displayName: json['displayName'] ?? '',
       profileImageUrl: json['profileImageUrl'],
+      phoneNumber: json['phoneNumber'],
       bio: json['bio'],
       followersCount: json['followersCount'] ?? 0,
       followingCount: json['followingCount'] ?? 0,
@@ -61,6 +64,7 @@ class UserModel {
       'username': username,
       'displayName': displayName,
       'profileImageUrl': profileImageUrl,
+      'phoneNumber': phoneNumber,
       'bio': bio,
       'followersCount': followersCount,
       'followingCount': followingCount,
@@ -79,6 +83,7 @@ class UserModel {
     String? username,
     String? displayName,
     String? profileImageUrl,
+    String? phoneNumber,
     String? bio,
     int? followersCount,
     int? followingCount,
@@ -95,6 +100,7 @@ class UserModel {
       username: username ?? this.username,
       displayName: displayName ?? this.displayName,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       bio: bio ?? this.bio,
       followersCount: followersCount ?? this.followersCount,
       followingCount: followingCount ?? this.followingCount,

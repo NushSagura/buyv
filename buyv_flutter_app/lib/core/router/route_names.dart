@@ -8,6 +8,10 @@ class RouteNames {
   static const String login = '/login';
   static const String signup = '/signup';
   static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
+  static const String otpVerification = '/otp-verification';
+  static const String resetPassword = '/reset-password';
+  static const String passwordChangedSuccess = '/password-changed-success';
 
   // Main Navigation
   static const String home = '/home';
@@ -19,6 +23,7 @@ class RouteNames {
   static const String profile = '/profile';
   static const String editProfile = '/edit-profile';
   static const String addPost = '/add-post';
+  static const String followList = '/follow-list';
 
   // Deep Link Routes (without parameters)
   static const String user = '/user';
@@ -28,6 +33,10 @@ class RouteNames {
   // Search
   static const String search = '/search';
   static const String searchReels = '/search-reels';
+  static const String searchProducts = '/search-products';
+
+  // Products
+  static const String allProducts = '/all-products';
 
   // Orders
   static const String ordersHistory = '/orders-history';
@@ -42,6 +51,7 @@ class RouteNames {
   static const String locationSettings = '/location-settings';
   static const String languageSettings = '/language-settings';
   static const String changePassword = '/change-password';
+  static const String deleteAccount = '/delete-account';
 
   // Notifications
   static const String notifications = '/notifications';

@@ -122,12 +122,12 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF114B7F)),
             onPressed: () {
               if (context.canPop()) {
                 context.pop();
@@ -139,17 +139,17 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
         title: const Text(
           'Help & Support',
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+            color: Color(0xFF114B7F),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.blue,
+          indicatorColor: const Color(0xFFFF6F00),
           labelColor: Colors.blue,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: Colors.grey[600],
           tabs: const [
             Tab(text: 'FAQ'),
             Tab(text: 'Contact'),
@@ -182,20 +182,20 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
           padding: const EdgeInsets.all(16),
           child: TextField(
             controller: _searchController,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: const Color(0xFF114B7F)),
             decoration: InputDecoration(
               hintText: 'Search FAQ...',
-              hintStyle: TextStyle(color: Colors.grey[400]),
-              prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+              hintStyle: TextStyle(color: Colors.grey[600]),
+              prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
               filled: true,
-              fillColor: Colors.grey[900],
+              fillColor: Colors.grey[100],
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
-                      icon: Icon(Icons.clear, color: Colors.grey[400]),
+                      icon: Icon(Icons.clear, color: Colors.grey[600]),
                       onPressed: () {
                         _searchController.clear();
                       },
@@ -221,9 +221,9 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                           onSelected: (selected) {
                             // Filter by category
                           },
-                          backgroundColor: Colors.grey[900],
+                          backgroundColor: Colors.grey[100],
                           selectedColor: Colors.blue.withValues(alpha: 0.3),
-                          labelStyle: const TextStyle(color: Colors.white),
+                          labelStyle: const TextStyle(color: const Color(0xFF114B7F)),
                         ),
                       ))
                   .toList(),
@@ -241,14 +241,14 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[900],
+                  color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ExpansionTile(
                   title: Text(
                     faq['question'],
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: const Color(0xFF114B7F),
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -268,15 +268,15 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-                  iconColor: Colors.white,
-                  collapsedIconColor: Colors.grey,
+                  iconColor: const Color(0xFF114B7F),
+                  collapsedIconColor: Colors.grey[600],
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
                         faq['answer'],
                         style: TextStyle(
-                          color: Colors.grey[300],
+                          color: Colors.grey[700],
                           fontSize: 14,
                           height: 1.5,
                         ),
@@ -302,7 +302,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
           const Text(
             'Get in Touch',
             style: TextStyle(
-              color: Colors.white,
+              color: const Color(0xFF114B7F),
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
@@ -312,7 +312,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
           ..._contactOptions.map((option) => Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: Colors.grey[900],
+              color: Colors.grey[100],
               borderRadius: BorderRadius.circular(12),
             ),
             child: ListTile(
@@ -332,7 +332,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
               title: Text(
                 option['title'],
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: const Color(0xFF114B7F),
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -343,7 +343,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                   Text(
                     option['subtitle'],
                     style: TextStyle(
-                      color: Colors.grey[400],
+                      color: Colors.grey[600],
                       fontSize: 14,
                     ),
                   ),
@@ -378,7 +378,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey[900],
+              color: Colors.grey[100],
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -387,19 +387,19 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                 const Text(
                   'Quick Message',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: const Color(0xFF114B7F),
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: const Color(0xFF114B7F)),
                   decoration: InputDecoration(
                     hintText: 'Subject',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    hintStyle: TextStyle(color: Colors.grey[600]),
                     filled: true,
-                    fillColor: Colors.grey[800],
+                    fillColor: Colors.grey[200],
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
@@ -409,12 +409,12 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                 const SizedBox(height: 12),
                 TextField(
                   maxLines: 4,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: const Color(0xFF114B7F)),
                   decoration: InputDecoration(
                     hintText: 'Your message...',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    hintStyle: TextStyle(color: Colors.grey[600]),
                     filled: true,
-                    fillColor: Colors.grey[800],
+                    fillColor: Colors.grey[200],
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
@@ -434,7 +434,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: const Color(0xFFFF6F00),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -442,7 +442,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                     ),
                     child: const Text(
                       'Send Message',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: const Color(0xFF114B7F)),
                     ),
                   ),
                 ),
@@ -501,7 +501,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: Colors.grey[900],
+            color: Colors.grey[100],
             borderRadius: BorderRadius.circular(12),
           ),
           child: ListTile(
@@ -521,7 +521,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
             title: Text(
               guide['title'] as String,
               style: const TextStyle(
-                color: Colors.white,
+                color: const Color(0xFF114B7F),
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -532,7 +532,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                 Text(
                   guide['description'] as String,
                   style: TextStyle(
-                    color: Colors.grey[400],
+                    color: Colors.grey[600],
                     fontSize: 14,
                   ),
                 ),
@@ -547,7 +547,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                   ),
               ],
             ),
-            trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+            trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey[600], size: 16),
             onTap: () => _openGuide(guide),
           ),
         );
@@ -572,7 +572,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Opening email client...'),
-              backgroundColor: Colors.blue,
+              backgroundColor: const Color(0xFFFF6F00),
             ),
           );
           
@@ -640,14 +640,14 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
+        backgroundColor: Colors.grey[100],
         title: const Text(
           'Live Chat',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: const Color(0xFF114B7F)),
         ),
-        content: const Text(
+        content: Text(
           'Would you like to start a live chat session with our support team?',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: Colors.grey[600]),
         ),
         actions: [
           TextButton(
@@ -660,7 +660,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Starting live chat...'),
-                  backgroundColor: Colors.blue,
+                  backgroundColor: const Color(0xFFFF6F00),
                 ),
               );
             },
@@ -674,7 +674,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
   void _openGuide(Map<String, dynamic> guide) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Colors.grey[100],
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -708,7 +708,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                     child: Text(
                       guide['title'] as String,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: const Color(0xFF114B7F),
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -716,7 +716,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.grey),
+                    icon: Icon(Icons.close, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -724,7 +724,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
               Text(
                 guide['description'] as String,
                 style: TextStyle(
-                  color: Colors.grey[400],
+                  color: Colors.grey[600],
                   fontSize: 16,
                 ),
               ),
@@ -737,7 +737,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[800],
+                      color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -753,7 +753,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                             child: Text(
                               '${index + 1}',
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: const Color(0xFF114B7F),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -764,7 +764,7 @@ class _HelpScreenState extends State<HelpScreen> with TickerProviderStateMixin {
                           child: Text(
                             'Step ${index + 1}: This is a sample step description for ${guide['title'] as String}',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: const Color(0xFF114B7F),
                               fontSize: 14,
                             ),
                           ),

@@ -46,6 +46,21 @@ class AuthRepositoryFastApi {
     throw Exception('Change password not implemented');
   }
 
+  /// Delete account permanently
+  /// Required for Google Play Store and Apple App Store compliance
+  Future<void> deleteAccount({
+    required String password,
+  }) async {
+    try {
+      await AuthApiService.deleteAccount(password: password);
+      // Clear tokens after successful deletion
+      await SecureTokenManager.clearAllTokens();
+    } catch (e) {
+      debugPrint('Error deleting account: $e');
+      rethrow;
+    }
+  }
+
   Future<UserModel?> getCurrentUser() async {
     try {
       final res = await AuthApiService.me();
