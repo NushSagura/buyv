@@ -11,6 +11,7 @@ from .posts import router as posts_router
 from .comments import router as comments_router
 from .payments import router as payments_router
 from .cleanup import router as cleanup_router
+from .admin import router as admin_router
 from .firebase_service import FirebaseService
 import logging
 
@@ -68,3 +69,4 @@ app.include_router(posts_router)
 app.include_router(comments_router)
 app.include_router(payments_router)
 app.include_router(cleanup_router)
+app.include_router(admin_router)
