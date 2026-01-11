@@ -13,13 +13,6 @@ void addCJProductToCart(BuildContext context, CJProduct cjProduct) {
       ? cjProduct.productImages 
       : (cjProduct.productImage.isNotEmpty ? [cjProduct.productImage] : []);
   
-  if (kDebugMode) {
-    print('🛒 Adding to cart: ${cjProduct.productName}');
-    print('   PID: ${cjProduct.pid}');
-    print('   Price: ${cjProduct.sellPrice}');
-    print('   Images: ${imageUrls.length}');
-  }
-  
   // Convertir CJProduct en ProductModel pour le panier
   final productModel = ProductModel(
     id: cjProduct.pid,
@@ -46,10 +39,6 @@ void addCJProductToCart(BuildContext context, CJProduct cjProduct) {
   );
   
   cartProvider.addToCart(productModel, quantity: 1);
-  
-  if (kDebugMode) {
-    print('✅ Cart now has ${cartProvider.items.length} items');
-  }
   
   // Fermer tout snackbar existant avant d'en afficher un nouveau
   ScaffoldMessenger.of(context).clearSnackBars();

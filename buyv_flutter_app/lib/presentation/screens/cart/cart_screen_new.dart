@@ -320,23 +320,16 @@ class _CartScreenNewState extends State<CartScreenNew> {
   Widget build(BuildContext context) {
     final authUser = Provider.of<AuthProvider>(context).currentUser;
 
-    debugPrint('🛒 CartScreenNew build - authUser: ${authUser?.email ?? "NULL"}');
-
     // Écran de connexion requis
     if (authUser == null) {
-      debugPrint('🛒 User not authenticated, showing login screen');
       return _buildRequireLoginScreen();
     }
-
-    debugPrint('🛒 User authenticated, showing cart');
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Consumer<CartProvider>(
           builder: (context, cartProvider, child) {
-            debugPrint('🛒 Cart items count: ${cartProvider.items.length}');
-            debugPrint('🛒 Cart isNotEmpty: ${cartProvider.items.isNotEmpty}');
             final cartItems = cartProvider.items;
             final totals = _calculateTotals(cartItems);
             final subtotal = totals['subtotal']!;
