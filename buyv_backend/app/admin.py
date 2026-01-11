@@ -35,12 +35,13 @@ def fix_sequences_public(db: Session = Depends(get_db)):
     
     for table in tables:
         try:
-            # Reset the sequence to the maximum ID + 1
+            # Reset the sequence to the maximum ID
+            # Use 'true' to mark sequence as "used", so nextval() returns MAX+1
             query = text(f"""
                 SELECT setval(
                     pg_get_serial_sequence('{table}', 'id'),
-                    COALESCE((SELECT MAX(id) FROM {table}), 0) + 1,
-                    false
+                    COALESCE((SELECT MAX(id) FROM {table}), 0),
+                    true
                 );
             """)
             result = db.execute(query)
@@ -83,12 +84,13 @@ def fix_sequences(
     
     for table in tables:
         try:
-            # Reset the sequence to the maximum ID + 1
+            # Reset the sequence to the maximum ID
+            # Use 'true' to mark sequence as "used", so nextval() returns MAX+1
             query = text(f"""
                 SELECT setval(
                     pg_get_serial_sequence('{table}', 'id'),
-                    COALESCE((SELECT MAX(id) FROM {table}), 0) + 1,
-                    false
+                    COALESCE((SELECT MAX(id) FROM {table}), 0),
+                    true
                 );
             """)
             result = db.execute(query)
