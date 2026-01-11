@@ -72,7 +72,7 @@ def _map_order_out(order: Order, db: Session) -> dict:
         "subtotal": order.subtotal,
         "shipping": order.shipping,
         "tax": order.tax,
-        "total_amount": order.total, # Mapped to total_amount in schema (aliased to totalAmount)
+        "total": order.total,  # Fixed: use 'total' to match OrderOut schema
         "shipping_address": shipping_addr_dict,
         
         # Construct payment_info object
