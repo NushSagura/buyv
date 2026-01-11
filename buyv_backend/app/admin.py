@@ -17,11 +17,10 @@ def fix_sequences_public(db: Session = Depends(get_db)):
     This resets all sequences to MAX(id) + 1 for each table.
     """
     
-    # List of tables with auto-increment IDs
+    # List of tables with auto-increment IDs (only existing tables)
     tables = [
         "users",
-        "posts",  # Changed from reels
-        "likes",
+        "posts",
         "comments",
         "follows",
         "notifications",
@@ -48,6 +47,8 @@ def fix_sequences_public(db: Session = Depends(get_db)):
             db.commit()
             results[table] = "✓ Fixed"
         except Exception as e:
+            # Rollback on error to continue with next table
+            db.rollback()
             results[table] = f"⚠ Error: {str(e)[:100]}"
             continue
     
