@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 import 'data/repositories/auth_repository_fastapi.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/cart_provider.dart';
+import 'presentation/providers/bookmark_provider.dart';
 import 'data/providers/product_provider.dart';
 import 'data/providers/user_provider.dart';
 import 'data/providers/theme_provider.dart';
@@ -175,6 +176,13 @@ class _MyAppState extends State<MyApp> {
           create: (context) {
             final provider = CartProvider();
             provider.loadCart();
+            return provider;
+          },
+        ),
+        ChangeNotifierProvider(
+          create: (context) {
+            final provider = BookmarkProvider();
+            provider.loadBookmarks();
             return provider;
           },
         ),

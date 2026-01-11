@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:provider/provider.dart';
 import '../../data/models/post_model.dart';
 import '../../services/post_service.dart';
+import '../providers/bookmark_provider.dart';
 import 'video_player_widget.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -19,7 +21,6 @@ class PostCardWidget extends StatefulWidget {
 class _PostCardWidgetState extends State<PostCardWidget> {
   late bool _isLiked;
   late int _likesCount;
-  late bool _isBookmarked;
   final PostService _postService = PostService();
 
   @override
@@ -27,7 +28,6 @@ class _PostCardWidgetState extends State<PostCardWidget> {
     super.initState();
     _isLiked = widget.post.isLiked;
     _likesCount = widget.post.likesCount;
-    _isBookmarked = widget.post.isBookmarked;
   }
 
   Future<void> _toggleLike() async {
@@ -56,48 +56,25 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   }
 
   Future<void> _toggleBookmark() async {
-    final previousState = _isBookmarked;
+    final bookmarkProvider = Provider.of<BookmarkProvider>(context, listen: false);
+    
+    final success = await bookmarkProvider.toggleBookmark(widget.post.id);
 
-    setState(() {
-      _isBookmarked = !_isBookmarked;
-    });
-
-    try {
-      final success = previousState
-          ? await PostService.unbookmarkPost(widget.post.id)
-          : await PostService.bookmarkPost(widget.post.id);
-
-      if (!success) {
-        // Revert on failure
-        if (mounted) {
-          setState(() {
-            _isBookmarked = previousState;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erreur lors de la sauvegarde')),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                _isBookmarked ? 'Ajouté aux favoris' : 'Retiré des favoris',
-              ),
-              duration: const Duration(seconds: 1),
+    if (mounted) {
+      if (success) {
+        final isNowBookmarked = bookmarkProvider.isBookmarked(widget.post.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isNowBookmarked ? 'Ajouté aux favoris' : 'Retiré des favoris',
             ),
-          );
-        }
-      }
-    } catch (e) {
-      // Revert on error
-      if (mounted) {
-        setState(() {
-          _isBookmarked = previousState;
-        });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la sauvegarde')),
+        );
       }
     }
   }
@@ -276,12 +253,17 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                     },
                   ),
                   const Spacer(),
-                  IconButton(
-                    icon: Icon(
-                      _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                      color: _isBookmarked ? Colors.yellow[700] : null,
-                    ),
-                    onPressed: _toggleBookmark,
+                  Consumer<BookmarkProvider>(
+                    builder: (context, bookmarkProvider, child) {
+                      final isBookmarked = bookmarkProvider.isBookmarked(widget.post.id);
+                      return IconButton(
+                        icon: Icon(
+                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                          color: isBookmarked ? Colors.yellow[700] : null,
+                        ),
+                        onPressed: _toggleBookmark,
+                      );
+                    },
                   ),
                 ],
               ),
