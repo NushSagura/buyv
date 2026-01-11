@@ -242,7 +242,9 @@ class _CartScreenNewState extends State<CartScreenNew> {
         throw Exception('Failed to create order');
       }
 
+      // Clear cart only AFTER successful order creation
       cartProvider.clearCart();
+      
       setState(() => _isLoading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
