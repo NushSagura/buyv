@@ -21,7 +21,7 @@ class BookmarkProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final bookmarks = await PostService.getUserBookmarks();
+      final bookmarks = await PostService().getUserBookmarkedPosts('');
       _bookmarkedPostIds.clear();
       _bookmarkedPostIds.addAll(bookmarks.map((post) => post.id));
     } catch (e) {
